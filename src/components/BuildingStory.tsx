@@ -48,8 +48,8 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
 
   // Initialize Three.js scenes
   useEffect(() => {
-    story.scenes.forEach((scene, index) => {
-      if (!scene.threeJsCode || !canvasRefs.current[index]) return;
+    story.scenes.forEach((storyScene, index) => {
+      if (!storyScene.threeJsCode || !canvasRefs.current[index]) return;
 
       const canvas = canvasRefs.current[index];
       if (!canvas) return;
@@ -80,19 +80,19 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
           'camera', 
           'renderer', 
           'canvas',
-          scene.threeJsCode
+          storyScene.threeJsCode
         );
         
         setupFn(THREE, scene, camera, renderer, canvas);
         
         // Store the Three.js objects
-        setScenes(prev => new Map(prev).set(scene.id, {
+        setScenes(prev => new Map(prev).set(storyScene.id, {
           renderer,
           scene,
           camera
         }));
       } catch (error) {
-        console.error(`Error setting up Three.js scene for ${scene.id}:`, error);
+        console.error(`Error setting up Three.js scene for ${storyScene.id}:`, error);
       }
     });
 
@@ -189,11 +189,11 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
       </section>
 
       {/* Story content sections */}
-      {story.scenes.slice(1).map((scene, idx) => {
+      {story.scenes.slice(1).map((storyScene, idx) => {
         const index = idx + 1;
         return (
           <section
-            key={scene.id}
+            key={storyScene.id}
             ref={el => sectionRefs.current[index] = el}
             data-index={index}
             className={cn(
@@ -204,18 +204,18 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
             <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               {/* Left side - 3D or Image */}
               <div className="order-2 md:order-1">
-                {scene.threeJsCode ? (
+                {storyScene.threeJsCode ? (
                   <div className="aspect-square w-full relative overflow-hidden rounded-xl bg-muted/20">
                     <canvas
                       ref={el => canvasRefs.current[index] = el}
                       className="w-full h-full"
                     />
                   </div>
-                ) : scene.data?.imageUrl ? (
+                ) : storyScene.data?.imageUrl ? (
                   <div className="aspect-square w-full relative overflow-hidden rounded-xl bg-muted/20">
                     <img
-                      src={scene.data.imageUrl}
-                      alt={scene.title}
+                      src={storyScene.data.imageUrl}
+                      alt={storyScene.title}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
@@ -230,38 +230,38 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
               {/* Right side - Content */}
               <div className="order-1 md:order-2 space-y-6">
                 <h2 className="text-3xl font-bold tracking-tight">
-                  {scene.title}
+                  {storyScene.title}
                 </h2>
                 <p className="text-lg text-muted-foreground">
-                  {scene.description}
+                  {storyScene.description}
                 </p>
 
                 {/* Display building data if available */}
-                {scene.data && 'height' in scene.data && (
+                {storyScene.data && 'height' in storyScene.data && (
                   <div className="grid grid-cols-2 gap-4 mt-6">
                     <div className="bg-muted/20 p-4 rounded-lg">
                       <div className="text-sm text-muted-foreground">Height</div>
-                      <div className="text-xl font-semibold">{scene.data.height} meters</div>
+                      <div className="text-xl font-semibold">{storyScene.data.height} meters</div>
                     </div>
                     <div className="bg-muted/20 p-4 rounded-lg">
                       <div className="text-sm text-muted-foreground">Floors</div>
-                      <div className="text-xl font-semibold">{scene.data.floors}</div>
+                      <div className="text-xl font-semibold">{storyScene.data.floors}</div>
                     </div>
                     <div className="bg-muted/20 p-4 rounded-lg">
                       <div className="text-sm text-muted-foreground">Completed</div>
-                      <div className="text-xl font-semibold">{scene.data.completionYear}</div>
+                      <div className="text-xl font-semibold">{storyScene.data.completionYear}</div>
                     </div>
                     <div className="bg-muted/20 p-4 rounded-lg">
                       <div className="text-sm text-muted-foreground">Location</div>
-                      <div className="text-xl font-semibold">{scene.data.location}</div>
+                      <div className="text-xl font-semibold">{storyScene.data.location}</div>
                     </div>
                   </div>
                 )}
 
                 {/* Interactive buttons */}
-                {scene.interactiveElements?.filter(el => el.type === 'button').length > 0 && (
+                {storyScene.interactiveElements?.filter(el => el.type === 'button').length > 0 && (
                   <div className="flex flex-wrap gap-4 mt-6">
-                    {scene.interactiveElements
+                    {storyScene.interactiveElements
                       .filter(el => el.type === 'button')
                       .map(button => (
                         <button
