@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import ChatInput from "@/components/ChatInput";
@@ -21,6 +22,13 @@ const Index = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const navigate = useNavigate();
 
+  // Handle navigation to the Three.js sketch page
+  const handleNavigateToSketch = () => {
+    console.log("Navigating to /sketch");
+    navigate('/sketch');
+  };
+
+  // Setup Three.js scene and renderer
   useEffect(() => {
     console.log("Setting up Three.js scene");
     if (canvasRef.current) {
@@ -62,10 +70,11 @@ const Index = () => {
         const firstScene = tallestBuildingsStory.scenes[0];
         if (firstScene && firstScene.data && firstScene.data.threejs_code) {
           console.log("Executing Three.js code from dummy data");
+          // Fixed: Use different parameter names to avoid 'camera' redeclaration
           const setupFn = new Function(
             'THREE', 
             'existingScene', 
-            'camera', 
+            'existingCamera', 
             'renderer', 
             'canvas',
             firstScene.data.threejs_code
@@ -173,7 +182,7 @@ const Index = () => {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => navigate('/sketch')}
+            onClick={handleNavigateToSketch}
             className="mt-2 bg-white/20 hover:bg-white/30 text-white border-white/20"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
@@ -205,7 +214,7 @@ const Index = () => {
             </div>
             
             <Button 
-              onClick={() => navigate('/sketch')}
+              onClick={handleNavigateToSketch}
               className="mt-4"
             >
               <ExternalLink className="mr-2 h-4 w-4" />

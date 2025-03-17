@@ -56,11 +56,11 @@ const ThreeJsSketch = () => {
         const firstScene = tallestBuildingsStory.scenes[0];
         if (firstScene && firstScene.data && firstScene.data.threejs_code) {
           console.log("Executing Three.js code from dummy data");
-          // Use a variable name other than 'scene' to avoid redeclaration
+          // Fixed: Use different parameter names to avoid 'camera' redeclaration
           const setupFn = new Function(
             'THREE', 
             'existingScene', 
-            'camera', 
+            'existingCamera', 
             'renderer', 
             'canvas',
             firstScene.data.threejs_code
