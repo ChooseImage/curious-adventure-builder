@@ -1,5 +1,6 @@
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
 import StoryContainer from "@/components/StoryContainer";
@@ -12,6 +13,105 @@ const Index = () => {
   const [storyState, setStoryState] = useState<StoryState>('idle');
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+
+  // Initialize Three.js scene when component mounts
+  useEffect(() => {
+    if (storyState === 'idle' && canvasRef.current) {
+      const canvas = canvasRef.current;
+      
+      // Create renderer
+      const renderer = new THREE.WebGLRenderer({ 
+        canvas, 
+        antialias: true,
+        alpha: true 
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      rendererRef.current = renderer;
+
+      // Create scene
+      const scene = new THREE.Scene();
+      sceneRef.current = scene;
+
+      // Create camera
+      const camera = new THREE.PerspectiveCamera(
+        75, 
+        window.innerWidth / window.innerHeight, 
+        0.1, 
+        1000
+      );
+      camera.position.z = 10;
+      cameraRef.current = camera;
+
+      // Add lights
+      const ambientLight = new THREE.AmbientLight(0x404040, 2);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+
+      // Execute the threejs_code from the dummy data
+      try {
+        // Get the first scene with threejs_code
+        const firstScene = tallestBuildingsStory.scenes[0];
+        if (firstScene && firstScene.data && firstScene.data.threejs_code) {
+          const setupFn = new Function(
+            'THREE', 
+            'scene', 
+            'camera', 
+            'renderer', 
+            'canvas',
+            firstScene.data.threejs_code
+          );
+          
+          setupFn(THREE, scene, camera, renderer, canvas);
+        }
+      } catch (error) {
+        console.error("Error executing Three.js code:", error);
+      }
+
+      // Animation loop
+      const animate = () => {
+        if (!canvasRef.current) return;
+        
+        requestAnimationFrame(animate);
+        
+        // Rotate camera slightly for subtle movement
+        if (cameraRef.current && sceneRef.current) {
+          cameraRef.current.position.x = Math.sin(Date.now() * 0.0001) * 2;
+          cameraRef.current.lookAt(sceneRef.current.position);
+        }
+        
+        if (rendererRef.current && sceneRef.current && cameraRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+        }
+      };
+      
+      animate();
+
+      // Handle window resize
+      const handleResize = () => {
+        if (cameraRef.current && rendererRef.current) {
+          cameraRef.current.aspect = window.innerWidth / window.innerHeight;
+          cameraRef.current.updateProjectionMatrix();
+          rendererRef.current.setSize(window.innerWidth, window.innerHeight);
+        }
+      };
+
+      window.addEventListener('resize', handleResize);
+
+      // Cleanup
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        rendererRef.current?.dispose();
+      };
+    }
+  }, [storyState]);
 
   const handlePromptSubmit = async (prompt: string) => {
     // Start loading state
@@ -66,17 +166,28 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <div className="min-h-screen w-full bg-background relative">
+      {/* Three.js background canvas */}
+      <canvas
+        ref={canvasRef}
+        className="fixed top-0 left-0 w-full h-full -z-10"
+      />
+      
       {/* Initial welcome state - only visible when idle */}
       {storyState === 'idle' && (
-        <div className="min-h-screen flex flex-col justify-center items-center p-8">
-          <div className="max-w-2xl mx-auto text-center space-y-6 animate-fade-in">
+        <div className="min-h-screen flex flex-col justify-center items-center p-8 relative z-10">
+          <div className="max-w-2xl mx-auto text-center space-y-6 animate-fade-in glass-panel p-8 rounded-lg">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
               Interactive Storybook Creator
             </h1>
-            <p className="text-xl text-muted-foreground">
-              Ask me anything and I'll create an interactive story just for you.
-            </p>
+            
+            {/* Content from the dummy data */}
+            {tallestBuildingsStory.scenes[0]?.data?.content_copy && (
+              <p className="text-lg text-muted-foreground">
+                {tallestBuildingsStory.scenes[0].data.content_copy}
+              </p>
+            )}
+            
             <div className="text-muted-foreground">
               <p>Try asking about:</p>
               <ul className="mt-2 inline-flex flex-col gap-1">
