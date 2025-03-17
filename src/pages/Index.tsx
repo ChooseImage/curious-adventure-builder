@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import ChatInput from "@/components/ChatInput";
@@ -17,9 +18,16 @@ const Index = () => {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
 
+  // Setup Three.js scene and renderer
   useEffect(() => {
+    console.log("Setting up Three.js scene");
     if (canvasRef.current) {
       const canvas = canvasRef.current;
+      
+      // Clear any existing renderer to prevent duplicates
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+      }
       
       const renderer = new THREE.WebGLRenderer({ 
         canvas, 
@@ -52,9 +60,11 @@ const Index = () => {
       try {
         const firstScene = tallestBuildingsStory.scenes[0];
         if (firstScene && firstScene.data && firstScene.data.threejs_code) {
+          console.log("Executing Three.js code from dummy data");
+          // Use a variable name other than 'scene' to avoid redeclaration
           const setupFn = new Function(
             'THREE', 
-            'scene', 
+            'existingScene', 
             'camera', 
             'renderer', 
             'canvas',
@@ -99,7 +109,7 @@ const Index = () => {
         rendererRef.current?.dispose();
       };
     }
-  }, []);
+  }, []); // Only run once on mount
 
   const handlePromptSubmit = async (prompt: string) => {
     setStoryState('loading');
@@ -150,13 +160,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background relative">
-      <canvas
-        ref={canvasRef}
-        className="fixed top-0 left-0 w-full h-full -z-10"
-      />
+      {/* Debug section: Ensure Three.js canvas is visible */}
+      <div className="relative w-full h-screen z-0">
+        <canvas
+          ref={canvasRef}
+          className="absolute top-0 left-0 w-full h-full"
+          style={{ zIndex: 0 }}
+        />
+        <div className="absolute top-0 left-0 w-full p-4 bg-black/20 text-white z-10">
+          <h2 className="text-lg font-bold">Three.js Canvas Debugging</h2>
+          <p>If you see this text but no 3D content below, there might be an issue with Three.js rendering.</p>
+        </div>
+      </div>
       
       {storyState === 'idle' && (
-        <div className="min-h-screen flex flex-col justify-center items-center p-8 relative z-10">
+        <div className="absolute top-0 left-0 w-full min-h-screen flex flex-col justify-center items-center p-8 z-20">
           <div className="max-w-2xl mx-auto text-center space-y-6 animate-fade-in glass-panel p-8 rounded-lg">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
               Interactive Storybook Creator
