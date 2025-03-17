@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -44,21 +43,11 @@ const Index = () => {
       toast.error("There was an error generating your story. Using demo data instead.");
       
       // Fallback to dummy data in case of API failure
-      if (prompt.toLowerCase().includes('tall') || 
-          prompt.toLowerCase().includes('build') || 
-          prompt.toLowerCase().includes('skyscraper')) {
-        setActiveStory({
-          ...tallestBuildingsStory,
-          originalPrompt: prompt
-        });
-      } else {
-        setActiveStory({
-          ...tallestBuildingsStory,
-          originalPrompt: prompt,
-          title: `Story about: ${prompt}`
-        });
-        toast.info("Demo mode: Using the tallest buildings story for all prompts");
-      }
+      setActiveStory({
+        ...tallestBuildingsStory,
+        originalPrompt: prompt,
+        title: prompt.length > 30 ? `${prompt.substring(0, 30)}...` : prompt
+      });
       
       setStoryState('ready');
     }

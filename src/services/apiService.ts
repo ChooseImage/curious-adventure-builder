@@ -28,6 +28,7 @@ export interface ThreadResponse {
 export interface InvokeRequest {
   thread_id: string;
   input: string; // String format as required by the API
+  stream?: boolean; // Optional streaming parameter
 }
 
 export interface InvokeResponse {
@@ -100,10 +101,13 @@ export const invokeThread = async (
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
-    // Updated request body format based on API error
-    const requestBody: InvokeRequest = {
-      thread_id: threadId,
-      input: prompt  // String format as required by the API
+    // Fix: The API expects the request body to be sent as JSON with specific format
+    const requestBody = {
+      body: {
+        thread_id: threadId,
+        input: prompt,
+        stream: false // Explicitly set stream to false
+      }
     };
     
     console.log('Invoke API request body:', JSON.stringify(requestBody));
