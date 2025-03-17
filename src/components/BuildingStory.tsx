@@ -49,7 +49,9 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
   // Initialize Three.js scenes
   useEffect(() => {
     story.scenes.forEach((storyScene, index) => {
-      if (!storyScene.threeJsCode || !canvasRefs.current[index]) return;
+      // Check if scene has threejs_code in data or direct threeJsCode property
+      const threeJsCode = storyScene.data?.threejs_code || storyScene.threeJsCode;
+      if (!threeJsCode || !canvasRefs.current[index]) return;
 
       const canvas = canvasRefs.current[index];
       if (!canvas) return;
@@ -80,7 +82,7 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
           'camera', 
           'renderer', 
           'canvas',
-          storyScene.threeJsCode
+          threeJsCode
         );
         
         setupFn(THREE, scene, camera, renderer, canvas);
@@ -167,10 +169,17 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Based on your question: <span className="italic">"{story.originalPrompt}"</span>
           </p>
+          
+          {/* Display content_copy if available in the first scene */}
+          {story.scenes[0].data?.content_copy && (
+            <div className="mt-6 text-lg text-muted-foreground">
+              {story.scenes[0].data.content_copy}
+            </div>
+          )}
         </div>
 
         {/* First scene canvas */}
-        {story.scenes[0].threeJsCode && (
+        {(story.scenes[0].data?.threejs_code || story.scenes[0].threeJsCode) && (
           <div className="w-full max-w-4xl h-64 md:h-96 mt-12 relative overflow-hidden rounded-xl">
             <canvas
               ref={el => canvasRefs.current[0] = el}
@@ -204,7 +213,7 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
             <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               {/* Left side - 3D or Image */}
               <div className="order-2 md:order-1">
-                {storyScene.threeJsCode ? (
+                {(storyScene.data?.threejs_code || storyScene.threeJsCode) ? (
                   <div className="aspect-square w-full relative overflow-hidden rounded-xl bg-muted/20">
                     <canvas
                       ref={el => canvasRefs.current[index] = el}
@@ -232,8 +241,10 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
                 <h2 className="text-3xl font-bold tracking-tight">
                   {storyScene.title}
                 </h2>
+                
+                {/* Display content_copy from data if available, otherwise use description */}
                 <p className="text-lg text-muted-foreground">
-                  {storyScene.description}
+                  {storyScene.data?.content_copy || storyScene.description}
                 </p>
 
                 {/* Display building data if available */}
