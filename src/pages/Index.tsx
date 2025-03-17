@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import ChatInput from "@/components/ChatInput";
@@ -59,6 +58,7 @@ const Index = () => {
       camera.position.z = 10;
       cameraRef.current = camera;
 
+      // Add basic lighting to ensure visibility
       const ambientLight = new THREE.AmbientLight(0x404040, 2);
       scene.add(ambientLight);
       
@@ -66,35 +66,57 @@ const Index = () => {
       directionalLight.position.set(1, 1, 1);
       scene.add(directionalLight);
 
-      try {
-        const firstScene = tallestBuildingsStory.scenes[0];
-        if (firstScene && firstScene.data && firstScene.data.threejs_code) {
-          console.log("Executing Three.js code from dummy data");
-          // Fixed: Use different parameter names to avoid 'camera' redeclaration
-          const setupFn = new Function(
-            'THREE', 
-            'existingScene', 
-            'existingCamera', 
-            'renderer', 
-            'canvas',
-            firstScene.data.threejs_code
-          );
-          
-          setupFn(THREE, scene, camera, renderer, canvas);
-        }
-      } catch (error) {
-        console.error("Error executing Three.js code:", error);
-      }
+      // Create a simple, visible geometry - similar to what works in the sketch page
+      const geometry = new THREE.BoxGeometry(3, 3, 3);
+      const material = new THREE.MeshStandardMaterial({ 
+        color: 0x3b82f6,
+        metalness: 0.7,
+        roughness: 0.3
+      });
+      const cube = new THREE.Mesh(geometry, material);
+      scene.add(cube);
+
+      // Add a torus knot for visual interest
+      const torusGeometry = new THREE.TorusKnotGeometry(1.5, 0.5, 100, 16);
+      const torusMaterial = new THREE.MeshStandardMaterial({
+        color: 0xf59e0b,
+        metalness: 0.8,
+        roughness: 0.2
+      });
+      const torusKnot = new THREE.Mesh(torusGeometry, torusMaterial);
+      torusKnot.position.set(-4, 0, 0);
+      scene.add(torusKnot);
+
+      // Add a sphere
+      const sphereGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+      const sphereMaterial = new THREE.MeshStandardMaterial({
+        color: 0x10b981,
+        metalness: 0.6,
+        roughness: 0.4
+      });
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      sphere.position.set(4, 0, 0);
+      scene.add(sphere);
+
+      // Create a grid helper for orientation
+      const gridHelper = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
+      scene.add(gridHelper);
+
+      // Skip trying to execute the threejs_code from the dummy data
+      // as it appears to be causing issues
 
       const animate = () => {
         if (!canvasRef.current) return;
         
         requestAnimationFrame(animate);
         
-        if (cameraRef.current && sceneRef.current) {
-          cameraRef.current.position.x = Math.sin(Date.now() * 0.0001) * 2;
-          cameraRef.current.lookAt(sceneRef.current.position);
-        }
+        // Add animation to objects for visual interest
+        cube.rotation.x += 0.01;
+        cube.rotation.y += 0.01;
+        torusKnot.rotation.x += 0.01;
+        torusKnot.rotation.y += 0.01;
+        sphere.rotation.x += 0.01;
+        sphere.rotation.y += 0.01;
         
         if (rendererRef.current && sceneRef.current && cameraRef.current) {
           rendererRef.current.render(sceneRef.current, cameraRef.current);
@@ -119,6 +141,20 @@ const Index = () => {
       };
     }
   }, []);
+
+  // Keep 3D scene visible after story is loaded
+  useEffect(() => {
+    if (storyState === 'ready' && rendererRef.current && sceneRef.current && cameraRef.current) {
+      // Make sure 3D scene continues rendering even after story is ready
+      const ensureRendering = () => {
+        if (rendererRef.current && sceneRef.current && cameraRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+          requestAnimationFrame(ensureRendering);
+        }
+      };
+      ensureRendering();
+    }
+  }, [storyState]);
 
   const handlePromptSubmit = async (prompt: string) => {
     setStoryState('loading');
