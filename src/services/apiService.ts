@@ -2,9 +2,13 @@
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
-// Base URL for the API with CORS proxy
-// Use a CORS proxy to avoid CORS issues
-const API_BASE_URL = 'https://corsproxy.io/?https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
+// Base URL for the API without proxy
+const BASE_API_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
+// CORS proxy URL
+const CORS_PROXY = 'https://corsproxy.io/?';
+
+// Function to get full proxied URL
+const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
 
 export interface ThreadResponse {
   thread_id: string;
@@ -42,8 +46,8 @@ export const createThread = async (): Promise<ThreadResponse> => {
   try {
     console.log('Attempting to create thread with API...');
     
-    // Use the correct endpoint for creating a thread
-    const response = await fetch(`${API_BASE_URL}/headless/thread`, {
+    // Use the correct endpoint for creating a thread with CORS proxy
+    const response = await fetch(getProxiedUrl('/headless/thread'), {
       method: 'GET',
       headers: {
         'accept': 'application/json'
@@ -89,7 +93,8 @@ export const invokeThread = async (
       }
     };
     
-    const response = await fetch(`${API_BASE_URL}/headless/invoke`, {
+    // Use the correct endpoint for invoke with CORS proxy
+    const response = await fetch(getProxiedUrl('/headless/invoke'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
