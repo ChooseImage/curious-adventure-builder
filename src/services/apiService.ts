@@ -1,4 +1,3 @@
-
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
@@ -104,15 +103,12 @@ export const invokeThread = async (
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
-    // FIXED: The API expects a top-level body field
+    // Structure matches the API schema exactly, removing the 'body' wrapper
     const requestBody = {
-      body: {
-        thread_id: threadId,
-        input: {
-          message: prompt,
-          canvas: "placeholder"  // Adding the required canvas placeholder
-        },
-        stream: false
+      thread_id: threadId,
+      input: {
+        message: prompt,
+        canvas: "string"  // Using "string" as per the schema example
       }
     };
     
@@ -362,4 +358,3 @@ const normalizeToStoryFormat = (content: any, prompt: string, threadId: string):
     }
   };
 };
-
