@@ -7,7 +7,15 @@ const API_BASE_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app'
 
 export interface ThreadResponse {
   thread_id: string;
-  status: string;
+  user_id?: string;
+  assistant_id?: string;
+  name?: string;
+  updated_at?: string;
+  metadata?: {
+    assistant_type?: string;
+    [key: string]: any;
+  };
+  status?: string;
 }
 
 export interface InvokeRequest {
@@ -33,8 +41,13 @@ export const createThread = async (): Promise<ThreadResponse> => {
   try {
     console.log('Attempting to create thread with API...');
     
-    // Use GET request to create a thread as specified in the API docs
-    const response = await fetch(`${API_BASE_URL}/headless/create_thread_headless_thread_get`);
+    // Use the correct endpoint for creating a thread
+    const response = await fetch(`${API_BASE_URL}/headless/thread`, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json'
+      }
+    });
     
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
