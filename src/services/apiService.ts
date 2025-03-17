@@ -4,11 +4,14 @@ import { tallestBuildingsStory } from '@/utils/dummyData';
 // Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
 
-// Try a different CORS proxy
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+// Replace with a different CORS proxy
+const CORS_PROXY = 'https://corsproxy.io/?';
 
 // Function to get full proxied URL
 const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
+
+// Alternatively, try direct API call with proper CORS headers
+const getDirectUrl = (endpoint: string) => `${BASE_API_URL}${endpoint}`;
 
 export interface ThreadResponse {
   thread_id: string;
@@ -48,7 +51,7 @@ export const createThread = async (): Promise<ThreadResponse> => {
   try {
     console.log('Attempting to create thread with API...');
     
-    // Add debug logging for the full URL
+    // Try with the new CORS proxy first
     const url = getProxiedUrl('/headless/thread');
     console.log('Thread API URL:', url);
     
@@ -57,6 +60,7 @@ export const createThread = async (): Promise<ThreadResponse> => {
       headers: {
         'accept': 'application/json',
         'Content-Type': 'application/json',
+        'Origin': window.location.origin
       }
     });
     
@@ -99,11 +103,11 @@ export const invokeThread = async (
   try {
     console.log(`Attempting to invoke thread ${threadId} with prompt: ${prompt}`);
     
-    // Add debug logging for the full URL
+    // Try with the new CORS proxy
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
-    // Structure matches the API schema exactly, removing the 'body' wrapper
+    // Prepare the request body according to the API schema
     const requestBody = {
       thread_id: threadId,
       input: {
@@ -118,7 +122,8 @@ export const invokeThread = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'accept': 'application/json'
+        'accept': 'application/json',
+        'Origin': window.location.origin
       },
       body: JSON.stringify(requestBody)
     });
