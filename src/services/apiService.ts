@@ -2,8 +2,9 @@
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
-// Base URL for the API
-const API_BASE_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
+// Base URL for the API with CORS proxy
+// Use a CORS proxy to avoid CORS issues
+const API_BASE_URL = 'https://corsproxy.io/?https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
 
 export interface ThreadResponse {
   thread_id: string;
