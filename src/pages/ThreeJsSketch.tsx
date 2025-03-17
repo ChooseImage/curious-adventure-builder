@@ -31,6 +31,7 @@ const ThreeJsSketch = () => {
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setClearColor(0x000000, 0.3); // Set a semi-transparent black background
       rendererRef.current = renderer;
 
       const scene = new THREE.Scene();
@@ -45,6 +46,7 @@ const ThreeJsSketch = () => {
       camera.position.z = 10;
       cameraRef.current = camera;
 
+      // Add lights to ensure objects are visible
       const ambientLight = new THREE.AmbientLight(0x404040, 2);
       scene.add(ambientLight);
       
@@ -52,34 +54,105 @@ const ThreeJsSketch = () => {
       directionalLight.position.set(1, 1, 1);
       scene.add(directionalLight);
 
-      try {
-        const firstScene = tallestBuildingsStory.scenes[0];
-        if (firstScene && firstScene.data && firstScene.data.threejs_code) {
-          console.log("Executing Three.js code from dummy data");
-          // Fixed: Use different parameter names to avoid 'camera' redeclaration
-          const setupFn = new Function(
-            'THREE', 
-            'existingScene', 
-            'existingCamera', 
-            'renderer', 
-            'canvas',
-            firstScene.data.threejs_code
-          );
-          
-          setupFn(THREE, scene, camera, renderer, canvas);
+      // Create a simple, visible geometry
+      const geometry = new THREE.BoxGeometry(3, 3, 3);
+      const material = new THREE.MeshStandardMaterial({ 
+        color: 0x3b82f6,
+        metalness: 0.7,
+        roughness: 0.3
+      });
+      const cube = new THREE.Mesh(geometry, material);
+      scene.add(cube);
+
+      // Add a torus knot for visual interest
+      const torusGeometry = new THREE.TorusKnotGeometry(1.5, 0.5, 100, 16);
+      const torusMaterial = new THREE.MeshStandardMaterial({
+        color: 0xf59e0b,
+        metalness: 0.8,
+        roughness: 0.2
+      });
+      const torusKnot = new THREE.Mesh(torusGeometry, torusMaterial);
+      torusKnot.position.set(-4, 0, 0);
+      scene.add(torusKnot);
+
+      // Add a sphere
+      const sphereGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+      const sphereMaterial = new THREE.MeshStandardMaterial({
+        color: 0x10b981,
+        metalness: 0.6,
+        roughness: 0.4
+      });
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      sphere.position.set(4, 0, 0);
+      scene.add(sphere);
+
+      // Create a grid helper for orientation
+      const gridHelper = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
+      scene.add(gridHelper);
+
+      // Add interaction handling
+      let isDragging = false;
+      let previousMousePosition = {
+        x: 0,
+        y: 0
+      };
+
+      // Mouse controls
+      canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        previousMousePosition = {
+          x: e.clientX,
+          y: e.clientY
+        };
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+          const deltaMove = {
+            x: e.clientX - previousMousePosition.x,
+            y: e.clientY - previousMousePosition.y
+          };
+
+          // Rotate scene
+          if (sceneRef.current) {
+            sceneRef.current.rotation.y += deltaMove.x * 0.005;
+            sceneRef.current.rotation.x += deltaMove.y * 0.005;
+          }
+
+          previousMousePosition = {
+            x: e.clientX,
+            y: e.clientY
+          };
         }
-      } catch (error) {
-        console.error("Error executing Three.js code:", error);
-      }
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+
+      // Zoom controls
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (cameraRef.current) {
+          cameraRef.current.position.z += e.deltaY * 0.01;
+          // Limit zoom range
+          cameraRef.current.position.z = Math.max(3, Math.min(20, cameraRef.current.position.z));
+        }
+      });
 
       const animate = () => {
         if (!canvasRef.current) return;
         
         requestAnimationFrame(animate);
         
-        if (cameraRef.current && sceneRef.current) {
-          cameraRef.current.position.x = Math.sin(Date.now() * 0.0001) * 2;
-          cameraRef.current.lookAt(sceneRef.current.position);
+        // Rotate objects if not being dragged
+        if (!isDragging) {
+          cube.rotation.x += 0.01;
+          cube.rotation.y += 0.01;
+          torusKnot.rotation.x += 0.01;
+          torusKnot.rotation.y += 0.01;
+          sphere.rotation.x += 0.01;
+          sphere.rotation.y += 0.01;
         }
         
         if (rendererRef.current && sceneRef.current && cameraRef.current) {
@@ -101,6 +174,7 @@ const ThreeJsSketch = () => {
 
       return () => {
         window.removeEventListener('resize', handleResize);
+        window.removeEventListener('mouseup', () => { isDragging = false; });
         rendererRef.current?.dispose();
       };
     }
@@ -133,7 +207,7 @@ const ThreeJsSketch = () => {
       <div className="absolute bottom-0 left-0 w-full p-4 bg-black/50 text-white z-50 pointer-events-auto">
         <p className="text-sm text-center">
           {tallestBuildingsStory.scenes[0]?.data?.content_copy || 
-            "Throughout human history, we've constantly pushed the boundaries of what's possible in architecture and engineering, creating ever taller structures that reach for the sky. These massive skyscrapers stand as monuments to human ingenuity and technological advancement."}
+            "Interactive 3D visualization with Three.js. Click and drag to rotate, use the scroll wheel to zoom in and out."}
         </p>
       </div>
     </div>
