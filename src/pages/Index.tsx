@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import ChatInput from "@/components/ChatInput";
@@ -15,6 +16,7 @@ const Index = () => {
   const [storyState, setStoryState] = useState<StoryState>('idle');
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -27,12 +29,35 @@ const Index = () => {
     navigate('/sketch');
   };
 
-  // Setup Three.js scene and renderer - only when storyState changes from idle
+  // Validate if the story has any Three.js content
   useEffect(() => {
-    // Only initialize Three.js after story is loading or ready
-    if (storyState === 'idle' || !canvasRef.current) return;
+    if (!activeStory || storyState !== 'ready') {
+      setHasValidThreeJsContent(false);
+      return;
+    }
+
+    // Check if any scene has Three.js code
+    const hasThreeJs = activeStory.scenes.some(scene => 
+      scene.data?.threejs_code || scene.threeJsCode
+    );
     
-    console.log("Setting up Three.js scene");
+    console.log("Story has Three.js content:", hasThreeJs);
+    setHasValidThreeJsContent(hasThreeJs);
+  }, [activeStory, storyState]);
+
+  // Setup Three.js scene and renderer - only when storyState is 'ready' AND we have valid Three.js content
+  useEffect(() => {
+    // Only initialize Three.js after story is ready AND we have valid Three.js content
+    if (storyState !== 'ready' || !hasValidThreeJsContent || !canvasRef.current) {
+      // Clean up any existing Three.js instance
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+        rendererRef.current = null;
+      }
+      return;
+    }
+    
+    console.log("Setting up Three.js scene after API response validation");
     const canvas = canvasRef.current;
     
     if (rendererRef.current) {
@@ -105,7 +130,7 @@ const Index = () => {
     scene.add(gridHelper);
 
     const animate = () => {
-      if (!canvasRef.current) return;
+      if (!canvasRef.current || storyState !== 'ready') return;
       
       requestAnimationFrame(animate);
       
@@ -136,23 +161,12 @@ const Index = () => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      rendererRef.current?.dispose();
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+        rendererRef.current = null;
+      }
     };
-  }, [storyState]); // Only re-run when storyState changes
-
-  // Keep 3D scene visible after story is loaded
-  useEffect(() => {
-    if (storyState === 'ready' && rendererRef.current && sceneRef.current && cameraRef.current) {
-      // Make sure 3D scene continues rendering even after story is ready
-      const ensureRendering = () => {
-        if (rendererRef.current && sceneRef.current && cameraRef.current) {
-          rendererRef.current.render(sceneRef.current, cameraRef.current);
-          requestAnimationFrame(ensureRendering);
-        }
-      };
-      ensureRendering();
-    }
-  }, [storyState]);
+  }, [storyState, hasValidThreeJsContent]); // Re-run when storyState or hasValidThreeJsContent changes
 
   const handlePromptSubmit = async (prompt: string) => {
     setStoryState('loading');
@@ -199,12 +213,13 @@ const Index = () => {
   const handleReset = () => {
     setStoryState('idle');
     setActiveStory(null);
+    setHasValidThreeJsContent(false);
   };
 
   return (
     <div className="min-h-screen w-full bg-background relative">
-      {/* Only show the canvas container when not in idle state */}
-      {storyState !== 'idle' && (
+      {/* Only show the canvas container when in ready state AND we have valid Three.js content */}
+      {storyState === 'ready' && hasValidThreeJsContent && (
         <div className="relative w-full h-screen">
           <canvas
             ref={canvasRef}
