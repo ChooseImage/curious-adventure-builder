@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -18,19 +19,26 @@ const Index = () => {
     
     try {
       // If we don't have a thread ID yet, create a new thread
-      if (!threadId) {
+      let currentThreadId = threadId;
+      if (!currentThreadId) {
         const threadResponse = await createThread();
-        setThreadId(threadResponse.thread_id);
+        currentThreadId = threadResponse.thread_id;
+        setThreadId(currentThreadId);
+        console.log('Created new thread:', currentThreadId);
       }
       
-      if (!threadId) {
+      if (!currentThreadId) {
         throw new Error("Failed to create or retrieve thread ID");
       }
       
       // Invoke the thread with the user's prompt
-      const story = await invokeThread(threadId, prompt);
+      console.log('Invoking thread with prompt:', prompt);
+      const story = await invokeThread(currentThreadId, prompt);
+      
+      console.log('Successfully received story:', story.title);
       setActiveStory(story);
       setStoryState('ready');
+      
     } catch (error) {
       console.error("Error processing prompt:", error);
       toast.error("There was an error generating your story. Using demo data instead.");
@@ -39,9 +47,16 @@ const Index = () => {
       if (prompt.toLowerCase().includes('tall') || 
           prompt.toLowerCase().includes('build') || 
           prompt.toLowerCase().includes('skyscraper')) {
-        setActiveStory(tallestBuildingsStory);
+        setActiveStory({
+          ...tallestBuildingsStory,
+          originalPrompt: prompt
+        });
       } else {
-        setActiveStory(tallestBuildingsStory);
+        setActiveStory({
+          ...tallestBuildingsStory,
+          originalPrompt: prompt,
+          title: `Story about: ${prompt}`
+        });
         toast.info("Demo mode: Using the tallest buildings story for all prompts");
       }
       
