@@ -1,17 +1,22 @@
+
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
 // Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
 
-// Replace with a different CORS proxy
-const CORS_PROXY = 'https://corsproxy.io/?';
+// Different CORS proxy options to try
+const CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+  'https://cors-anywhere.herokuapp.com/'
+];
+
+// Use the first proxy by default, can be changed if needed
+const ACTIVE_PROXY = CORS_PROXIES[0];
 
 // Function to get full proxied URL
-const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
-
-// Alternatively, try direct API call with proper CORS headers
-const getDirectUrl = (endpoint: string) => `${BASE_API_URL}${endpoint}`;
+const getProxiedUrl = (endpoint: string) => `${ACTIVE_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
 
 export interface ThreadResponse {
   thread_id: string;
@@ -51,7 +56,6 @@ export const createThread = async (): Promise<ThreadResponse> => {
   try {
     console.log('Attempting to create thread with API...');
     
-    // Try with the new CORS proxy first
     const url = getProxiedUrl('/headless/thread');
     console.log('Thread API URL:', url);
     
@@ -60,7 +64,8 @@ export const createThread = async (): Promise<ThreadResponse> => {
       headers: {
         'accept': 'application/json',
         'Content-Type': 'application/json',
-        'Origin': window.location.origin
+        'Origin': window.location.origin,
+        'X-Requested-With': 'XMLHttpRequest' // Add this header to help with CORS
       }
     });
     
@@ -103,7 +108,6 @@ export const invokeThread = async (
   try {
     console.log(`Attempting to invoke thread ${threadId} with prompt: ${prompt}`);
     
-    // Try with the new CORS proxy
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
@@ -123,7 +127,8 @@ export const invokeThread = async (
       headers: {
         'Content-Type': 'application/json',
         'accept': 'application/json',
-        'Origin': window.location.origin
+        'Origin': window.location.origin,
+        'X-Requested-With': 'XMLHttpRequest' // Add this header to help with CORS
       },
       body: JSON.stringify(requestBody)
     });

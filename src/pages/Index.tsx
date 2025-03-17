@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -15,15 +16,18 @@ const Index = () => {
   const handlePromptSubmit = async (prompt: string) => {
     // Start loading state
     setStoryState('loading');
+    toast.info("Generating your story...");
     
     try {
       // If we don't have a thread ID yet, create a new thread
       let currentThreadId = threadId;
       if (!currentThreadId) {
+        toast.info("Creating a new conversation thread...");
         const threadResponse = await createThread();
         currentThreadId = threadResponse.thread_id;
         setThreadId(currentThreadId);
         console.log('Created new thread:', currentThreadId);
+        toast.success("Thread created successfully!");
       }
       
       if (!currentThreadId) {
@@ -32,11 +36,13 @@ const Index = () => {
       
       // Invoke the thread with the user's prompt
       console.log('Invoking thread with prompt:', prompt);
+      toast.info("Sending your prompt to generate content...");
       const story = await invokeThread(currentThreadId, prompt);
       
       console.log('Successfully received story:', story.title);
       setActiveStory(story);
       setStoryState('ready');
+      toast.success("Your story is ready!");
       
     } catch (error) {
       console.error("Error processing prompt:", error);
