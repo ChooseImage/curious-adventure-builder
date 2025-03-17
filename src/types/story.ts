@@ -26,6 +26,7 @@ export interface Story {
   metadata?: {
     createdAt: string;
     tags: string[];
+    thread_id?: string; // Added to support API responses
     [key: string]: any;
   };
 }

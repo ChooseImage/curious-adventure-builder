@@ -1,41 +1,58 @@
-
 import React, { useState } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
 import StoryContainer from "@/components/StoryContainer";
-import { Story } from "@/types/story";
+import { Story, StoryState } from "@/types/story";
 import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
+import { createThread, invokeThread } from "@/services/apiService";
 
 const Index = () => {
-  const [storyState, setStoryState] = useState<'idle' | 'loading' | 'ready'>('idle');
+  const [storyState, setStoryState] = useState<StoryState>('idle');
   const [activeStory, setActiveStory] = useState<Story | null>(null);
+  const [threadId, setThreadId] = useState<string | null>(null);
 
-  const handlePromptSubmit = (prompt: string) => {
+  const handlePromptSubmit = async (prompt: string) => {
     // Start loading state
     setStoryState('loading');
     
-    // For demo purposes, simulate a loading delay
-    setTimeout(() => {
-      // In a real app, this would make an API call to generate the story
-      // For now, we'll use our dummy data for any prompt
+    try {
+      // If we don't have a thread ID yet, create a new thread
+      if (!threadId) {
+        const threadResponse = await createThread();
+        setThreadId(threadResponse.thread_id);
+      }
+      
+      if (!threadId) {
+        throw new Error("Failed to create or retrieve thread ID");
+      }
+      
+      // Invoke the thread with the user's prompt
+      const story = await invokeThread(threadId, prompt);
+      setActiveStory(story);
+      setStoryState('ready');
+    } catch (error) {
+      console.error("Error processing prompt:", error);
+      toast.error("There was an error generating your story. Using demo data instead.");
+      
+      // Fallback to dummy data in case of API failure
       if (prompt.toLowerCase().includes('tall') || 
           prompt.toLowerCase().includes('build') || 
           prompt.toLowerCase().includes('skyscraper')) {
         setActiveStory(tallestBuildingsStory);
       } else {
-        // For any other prompt, still use our buildings story but notify the user
         setActiveStory(tallestBuildingsStory);
         toast.info("Demo mode: Using the tallest buildings story for all prompts");
       }
       
       setStoryState('ready');
-    }, 3000);
+    }
   };
 
   const handleReset = () => {
     setStoryState('idle');
     setActiveStory(null);
+    // Keep the thread ID for potential follow-up conversations
   };
 
   return (
