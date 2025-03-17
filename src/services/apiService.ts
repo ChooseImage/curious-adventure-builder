@@ -24,10 +24,13 @@ export interface ThreadResponse {
   status?: string;
 }
 
-// Updated interface based on API documentation/logs
+// Updated interface based on API documentation/logs and the curl example
 export interface InvokeRequest {
   thread_id: string;
-  input: string; // String format as required by the API
+  input: {
+    message: string;  // The actual user prompt
+    canvas: string;   // Canvas placeholder as required by API
+  };
   stream?: boolean; // Optional streaming parameter
 }
 
@@ -101,13 +104,14 @@ export const invokeThread = async (
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
-    // Fix: The API expects the request body to be sent as JSON with specific format
+    // Fix: Format the request body according to the curl example
     const requestBody = {
-      body: {
-        thread_id: threadId,
-        input: prompt,
-        stream: false // Explicitly set stream to false
-      }
+      thread_id: threadId,
+      input: {
+        message: prompt,
+        canvas: "placeholder"  // Adding the required canvas placeholder
+      },
+      stream: false
     };
     
     console.log('Invoke API request body:', JSON.stringify(requestBody));
