@@ -104,14 +104,16 @@ export const invokeThread = async (
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
-    // Fix: Format the request body according to the curl example
+    // FIXED: The API expects a top-level body field
     const requestBody = {
-      thread_id: threadId,
-      input: {
-        message: prompt,
-        canvas: "placeholder"  // Adding the required canvas placeholder
-      },
-      stream: false
+      body: {
+        thread_id: threadId,
+        input: {
+          message: prompt,
+          canvas: "placeholder"  // Adding the required canvas placeholder
+        },
+        stream: false
+      }
     };
     
     console.log('Invoke API request body:', JSON.stringify(requestBody));
