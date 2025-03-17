@@ -104,17 +104,19 @@ export const invokeThread = async (
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
-    // Fix: Format the request body according to the curl example
-    const requestBody = {
-      thread_id: threadId,
-      input: {
-        message: prompt,
-        canvas: "placeholder"  // Adding the required canvas placeholder
-      },
-      stream: false
+    // Updated request body format - wrap everything in a "body" field as required by the API
+    const requestPayload = {
+      body: {
+        thread_id: threadId,
+        input: {
+          message: prompt,
+          canvas: "placeholder"
+        },
+        stream: false
+      }
     };
     
-    console.log('Invoke API request body:', JSON.stringify(requestBody));
+    console.log('Invoke API request payload:', JSON.stringify(requestPayload));
     
     const response = await fetch(url, {
       method: 'POST',
@@ -122,7 +124,7 @@ export const invokeThread = async (
         'Content-Type': 'application/json',
         'accept': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestPayload)
     });
     
     // Log the response type to debug
