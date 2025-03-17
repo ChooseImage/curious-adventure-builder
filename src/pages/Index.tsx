@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import ChatInput from "@/components/ChatInput";
@@ -8,6 +7,9 @@ import { Story, StoryState } from "@/types/story";
 import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
 import { createThread, invokeThread } from "@/services/apiService";
+import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [storyState, setStoryState] = useState<StoryState>('idle');
@@ -17,14 +19,13 @@ const Index = () => {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const navigate = useNavigate();
 
-  // Setup Three.js scene and renderer
   useEffect(() => {
     console.log("Setting up Three.js scene");
     if (canvasRef.current) {
       const canvas = canvasRef.current;
       
-      // Clear any existing renderer to prevent duplicates
       if (rendererRef.current) {
         rendererRef.current.dispose();
       }
@@ -61,7 +62,6 @@ const Index = () => {
         const firstScene = tallestBuildingsStory.scenes[0];
         if (firstScene && firstScene.data && firstScene.data.threejs_code) {
           console.log("Executing Three.js code from dummy data");
-          // Use a variable name other than 'scene' to avoid redeclaration
           const setupFn = new Function(
             'THREE', 
             'existingScene', 
@@ -109,7 +109,7 @@ const Index = () => {
         rendererRef.current?.dispose();
       };
     }
-  }, []); // Only run once on mount
+  }, []);
 
   const handlePromptSubmit = async (prompt: string) => {
     setStoryState('loading');
@@ -160,7 +160,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background relative">
-      {/* Debug section: Ensure Three.js canvas is visible */}
       <div className="relative w-full h-screen z-0">
         <canvas
           ref={canvasRef}
@@ -170,6 +169,16 @@ const Index = () => {
         <div className="absolute top-0 left-0 w-full p-4 bg-black/20 text-white z-10">
           <h2 className="text-lg font-bold">Three.js Canvas Debugging</h2>
           <p>If you see this text but no 3D content below, there might be an issue with Three.js rendering.</p>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate('/sketch')}
+            className="mt-2 bg-white/20 hover:bg-white/30 text-white border-white/20"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Full Screen Three.js Sketch
+          </Button>
         </div>
       </div>
       
@@ -194,6 +203,14 @@ const Index = () => {
                 <li>"Tell me about the solar system"</li>
               </ul>
             </div>
+            
+            <Button 
+              onClick={() => navigate('/sketch')}
+              className="mt-4"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Explore Three.js Visualization
+            </Button>
           </div>
         </div>
       )}
