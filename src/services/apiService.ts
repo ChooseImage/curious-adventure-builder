@@ -24,12 +24,10 @@ export interface ThreadResponse {
   status?: string;
 }
 
+// Updated interface based on API documentation/logs
 export interface InvokeRequest {
   thread_id: string;
-  input: {
-    message: string;
-    canvas?: string;
-  };
+  input: string; // Changed from object to string based on error message
 }
 
 export interface InvokeResponse {
@@ -102,12 +100,10 @@ export const invokeThread = async (
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
+    // Updated request body format based on API error
     const requestBody: InvokeRequest = {
       thread_id: threadId,
-      input: {
-        message: prompt,
-        canvas: "string"
-      }
+      input: prompt  // Changed from object to string
     };
     
     console.log('Invoke API request body:', JSON.stringify(requestBody));
@@ -136,6 +132,16 @@ export const invokeThread = async (
     }
     
     console.log('Successfully received response:', data);
+    
+    // If the API returned an error detail, throw it
+    if (data.detail) {
+      throw new Error(`API error: ${JSON.stringify(data.detail)}`);
+    }
+    
+    // If we don't have proper content structure, throw
+    if (!data.content) {
+      throw new Error('API response missing content field');
+    }
     
     return parseStoryFromResponse(data.content);
   } catch (error) {
