@@ -1,13 +1,21 @@
+
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
-// This API base URL is not accessible due to CORS restrictions in browser
-// We'll keep it for future server-side implementations
+// Base URL for the API
 const API_BASE_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
 
 export interface ThreadResponse {
   thread_id: string;
   status: string;
+}
+
+export interface InvokeRequest {
+  thread_id: string;
+  input: {
+    message: string;
+    canvas?: string;
+  };
 }
 
 export interface InvokeResponse {
@@ -25,22 +33,16 @@ export const createThread = async (): Promise<ThreadResponse> => {
   try {
     console.log('Attempting to create thread with API...');
     
-    // In a real implementation, we'd use a proxy server or backend API
-    // to avoid CORS issues. For now, we'll simulate the response.
-    const mockResponse: ThreadResponse = {
-      thread_id: `mock-thread-${Date.now()}`,
-      status: 'success'
-    };
+    // Use GET request to create a thread as specified in the API docs
+    const response = await fetch(`${API_BASE_URL}/headless/create_thread_headless_thread_get`);
     
-    // Uncomment when API is accessible
-    // const response = await fetch(`${API_BASE_URL}/headless/create_thread_headless_thread_get`);
-    // if (!response.ok) {
-    //   throw new Error(`API error: ${response.status}`);
-    // }
-    // return await response.json();
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
     
-    console.log('Using mock thread response for demo purposes');
-    return mockResponse;
+    const data = await response.json();
+    console.log('Successfully created thread:', data);
+    return data;
   } catch (error) {
     console.error('Error creating thread:', error);
     
@@ -64,34 +66,32 @@ export const invokeThread = async (
   try {
     console.log(`Attempting to invoke thread ${threadId} with prompt: ${prompt}`);
     
-    // Construct URL with query parameters
-    const url = new URL(`${API_BASE_URL}/headless/invoke_headless_invoke_get`);
-    url.searchParams.append('thread_id', threadId);
-    url.searchParams.append('message', prompt);
-    
-    // In a real implementation, we'd use a proxy server or backend API
-    // to avoid CORS issues. For now, we'll return dummy data.
-    
-    // Uncomment when API is accessible
-    // const response = await fetch(url.toString());
-    // if (!response.ok) {
-    //   throw new Error(`API error: ${response.status}`);
-    // }
-    // const data: InvokeResponse = await response.json();
-    // return parseStoryFromResponse(data.content);
-    
-    console.log('Using mock story data for demo purposes');
-    // Create a modified version of the story with the original prompt included
-    const mockStory = {
-      ...tallestBuildingsStory,
-      originalPrompt: prompt,
-      metadata: {
-        ...tallestBuildingsStory.metadata,
-        thread_id: threadId
+    // Using POST method with JSON body as specified in the curl example
+    const requestBody: InvokeRequest = {
+      thread_id: threadId,
+      input: {
+        message: prompt,
+        canvas: "string" // Default value as shown in the curl example
       }
     };
     
-    return mockStory;
+    const response = await fetch(`${API_BASE_URL}/headless/invoke`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'accept': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('Successfully received response:', data);
+    
+    return parseStoryFromResponse(data.content);
   } catch (error) {
     console.error('Error invoking thread:', error);
     
