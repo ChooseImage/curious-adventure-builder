@@ -2,10 +2,11 @@
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
-// Base URL for the API without proxy
+// Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
-// CORS proxy URL
-const CORS_PROXY = 'https://corsproxy.io/?';
+
+// Try a different CORS proxy
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 // Function to get full proxied URL
 const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
@@ -46,19 +47,32 @@ export const createThread = async (): Promise<ThreadResponse> => {
   try {
     console.log('Attempting to create thread with API...');
     
-    // Use the correct endpoint for creating a thread with CORS proxy
-    const response = await fetch(getProxiedUrl('/headless/thread'), {
+    // Add debug logging for the full URL
+    const url = getProxiedUrl('/headless/thread');
+    console.log('Thread API URL:', url);
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'accept': 'application/json'
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
       }
     });
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Log the response type to debug
+    console.log('Thread API response status:', response.status);
+    const responseText = await response.text();
+    console.log('Thread API response text preview:', responseText.substring(0, 200));
+    
+    // Try to parse the response as JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse API response as JSON:', parseError);
+      throw new Error('Invalid JSON response from API');
     }
     
-    const data = await response.json();
     console.log('Successfully created thread:', data);
     return data;
   } catch (error) {
@@ -84,17 +98,21 @@ export const invokeThread = async (
   try {
     console.log(`Attempting to invoke thread ${threadId} with prompt: ${prompt}`);
     
-    // Using POST method with JSON body as specified in the curl example
+    // Add debug logging for the full URL
+    const url = getProxiedUrl('/headless/invoke');
+    console.log('Invoke API URL:', url);
+    
     const requestBody: InvokeRequest = {
       thread_id: threadId,
       input: {
         message: prompt,
-        canvas: "string" // Default value as shown in the curl example
+        canvas: "string"
       }
     };
     
-    // Use the correct endpoint for invoke with CORS proxy
-    const response = await fetch(getProxiedUrl('/headless/invoke'), {
+    console.log('Invoke API request body:', JSON.stringify(requestBody));
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -103,11 +121,20 @@ export const invokeThread = async (
       body: JSON.stringify(requestBody)
     });
     
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+    // Log the response type to debug
+    console.log('Invoke API response status:', response.status);
+    const responseText = await response.text();
+    console.log('Invoke API response text preview:', responseText.substring(0, 200));
+    
+    // Try to parse the response as JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse API response as JSON:', parseError);
+      throw new Error('Invalid JSON response from API');
     }
     
-    const data = await response.json();
     console.log('Successfully received response:', data);
     
     return parseStoryFromResponse(data.content);
