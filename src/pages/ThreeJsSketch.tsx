@@ -111,14 +111,16 @@ const ThreeJsSketch = () => {
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 w-full h-full"
+        style={{ zIndex: 0 }} // Ensure canvas has a lower z-index
       />
       
-      <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center bg-black/20 text-white z-10">
+      {/* Increased z-index and improved visibility of the header */}
+      <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center bg-black/50 text-white z-50 pointer-events-auto">
         <Button
           variant="outline"
           size="sm" 
           onClick={() => navigate('/')}
-          className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+          className="bg-white/40 hover:bg-white/60 text-white border-white/40 font-semibold"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Home
@@ -127,7 +129,8 @@ const ThreeJsSketch = () => {
         <h1 className="text-xl font-bold">Three.js Visualization</h1>
       </div>
       
-      <div className="absolute bottom-0 left-0 w-full p-4 bg-black/20 text-white z-10">
+      {/* Increased z-index for the footer */}
+      <div className="absolute bottom-0 left-0 w-full p-4 bg-black/50 text-white z-50 pointer-events-auto">
         <p className="text-sm text-center">
           {tallestBuildingsStory.scenes[0]?.data?.content_copy || 
             "Throughout human history, we've constantly pushed the boundaries of what's possible in architecture and engineering, creating ever taller structures that reach for the sky. These massive skyscrapers stand as monuments to human ingenuity and technological advancement."}

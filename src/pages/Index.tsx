@@ -169,13 +169,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background relative">
-      <div className="relative w-full h-screen z-0">
+      <div className="relative w-full h-screen">
         <canvas
           ref={canvasRef}
           className="absolute top-0 left-0 w-full h-full"
           style={{ zIndex: 0 }}
         />
-        <div className="absolute top-0 left-0 w-full p-4 bg-black/20 text-white z-10">
+        
+        {/* Navigation Header - Increased z-index and added pointer-events-auto */}
+        <div className="absolute top-0 left-0 w-full p-4 bg-black/50 text-white z-50 pointer-events-auto">
           <h2 className="text-lg font-bold">Three.js Canvas Debugging</h2>
           <p>If you see this text but no 3D content below, there might be an issue with Three.js rendering.</p>
           
@@ -183,7 +185,7 @@ const Index = () => {
             variant="outline" 
             size="sm"
             onClick={handleNavigateToSketch}
-            className="mt-2 bg-white/20 hover:bg-white/30 text-white border-white/20"
+            className="mt-2 bg-white/40 hover:bg-white/60 text-white border-white/40 font-semibold"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             View Full Screen Three.js Sketch
@@ -213,9 +215,10 @@ const Index = () => {
               </ul>
             </div>
             
+            {/* Increased button visibility with higher contrast */}
             <Button 
               onClick={handleNavigateToSketch}
-              className="mt-4"
+              className="mt-4 bg-primary hover:bg-primary/80 text-white font-semibold px-6 py-2 shadow-lg z-50 relative"
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               Explore Three.js Visualization
