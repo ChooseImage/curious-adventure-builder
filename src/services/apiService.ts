@@ -5,18 +5,11 @@ import { tallestBuildingsStory } from '@/utils/dummyData';
 // Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
 
-// Different CORS proxy options to try
-const CORS_PROXIES = [
-  'https://corsproxy.io/?',
-  'https://api.allorigins.win/raw?url=',
-  'https://cors-anywhere.herokuapp.com/'
-];
-
-// Use the first proxy by default, can be changed if needed
-const ACTIVE_PROXY = CORS_PROXIES[0];
+// Try a different CORS proxy
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 // Function to get full proxied URL
-const getProxiedUrl = (endpoint: string) => `${ACTIVE_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
+const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
 
 export interface ThreadResponse {
   thread_id: string;
@@ -56,6 +49,7 @@ export const createThread = async (): Promise<ThreadResponse> => {
   try {
     console.log('Attempting to create thread with API...');
     
+    // Add debug logging for the full URL
     const url = getProxiedUrl('/headless/thread');
     console.log('Thread API URL:', url);
     
@@ -64,8 +58,6 @@ export const createThread = async (): Promise<ThreadResponse> => {
       headers: {
         'accept': 'application/json',
         'Content-Type': 'application/json',
-        'Origin': window.location.origin,
-        'X-Requested-With': 'XMLHttpRequest' // Add this header to help with CORS
       }
     });
     
@@ -108,16 +100,18 @@ export const invokeThread = async (
   try {
     console.log(`Attempting to invoke thread ${threadId} with prompt: ${prompt}`);
     
+    // Add debug logging for the full URL
     const url = getProxiedUrl('/headless/invoke');
     console.log('Invoke API URL:', url);
     
-    // Prepare the request body according to the API schema
+    // Fix: Format the request body according to the curl example
     const requestBody = {
       thread_id: threadId,
       input: {
         message: prompt,
-        canvas: "string"  // Using "string" as per the schema example
-      }
+        canvas: "placeholder"  // Adding the required canvas placeholder
+      },
+      stream: false
     };
     
     console.log('Invoke API request body:', JSON.stringify(requestBody));
@@ -126,9 +120,7 @@ export const invokeThread = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'accept': 'application/json',
-        'Origin': window.location.origin,
-        'X-Requested-With': 'XMLHttpRequest' // Add this header to help with CORS
+        'accept': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
