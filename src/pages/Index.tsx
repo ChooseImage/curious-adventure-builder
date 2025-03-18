@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -52,15 +53,10 @@ const Index = () => {
         toast.success("Thread created successfully!");
       }
       
-      if (!currentThreadId) {
-        throw new Error("Failed to create or retrieve thread ID");
-      }
-      
-      console.log('Invoking thread with prompt:', prompt);
-      toast.info("Sending your prompt to generate content...");
+      toast.info("Generating content from dummy data...");
       const story = await invokeThread(currentThreadId, prompt);
       
-      console.log('Successfully received story:', story.title);
+      console.log('Successfully loaded story:', story.title);
       setActiveStory(story);
       setStoryState('ready');
       setHasValidThreeJsContent(true);
@@ -68,8 +64,9 @@ const Index = () => {
       
     } catch (error) {
       console.error("Error processing prompt:", error);
-      toast.error("There was an error generating your story. Using demo data instead.");
+      toast.error("Using fallback dummy data");
       
+      // Always use dummy data even in case of error
       setActiveStory({
         ...tallestBuildingsStory,
         originalPrompt: prompt,
@@ -108,10 +105,11 @@ const Index = () => {
           </div>
           
           <div className="relative mt-screen">
-            <div className="h-[200vh] bg-gradient-to-b from-transparent to-background pt-[100vh]">
+            <div className="h-[300vh] bg-gradient-to-b from-transparent to-background pt-[100vh]">
               <div className="container mx-auto px-4 py-20">
                 <h2 className="text-3xl font-bold mb-6">Scroll to Explore the Buildings</h2>
                 <p className="text-lg mb-8">As you scroll down, watch how the camera flies around the world's tallest buildings.</p>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 shadow-lg">
                     <h3 className="text-xl font-semibold mb-3">About This Visualization</h3>
@@ -123,6 +121,34 @@ const Index = () => {
                     <p>These incredible structures represent some of humanity's greatest architectural and engineering achievements.</p>
                   </div>
                 </div>
+                
+                {/* Adding more scrollable content */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+                  {tallestBuildingsStory.scenes.slice(2, 8).map((scene, index) => (
+                    scene.data && (
+                      <div key={scene.id} className="bg-white/10 backdrop-blur-sm rounded-lg p-6 shadow-lg">
+                        <h3 className="text-xl font-semibold mb-3">{scene.title}</h3>
+                        <p className="mb-3">{scene.data.content_copy ? scene.data.content_copy.substring(0, 150) + '...' : scene.description}</p>
+                        {scene.data.height && (
+                          <div className="mt-2 text-sm">
+                            <p>Height: {scene.data.height}m</p>
+                            <p>Completed: {scene.data.completionYear}</p>
+                            <p>Location: {scene.data.location}</p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  ))}
+                </div>
+                
+                <div className="h-[50vh] flex items-center justify-center bg-white/5 backdrop-blur-sm rounded-lg p-8">
+                  <div className="text-center">
+                    <h2 className="text-3xl font-bold mb-4">Keep Scrolling for More</h2>
+                    <p className="text-xl">The visualization responds to your scroll position</p>
+                  </div>
+                </div>
+                
+                <div className="h-[30vh]"></div>
               </div>
             </div>
           </div>

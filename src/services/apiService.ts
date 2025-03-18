@@ -1,14 +1,11 @@
-
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
-// Base URL for the API
+// Base URL for the API - keeping this for future reference
 const BASE_API_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
-
-// Try a different CORS proxy
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
-// Function to get full proxied URL
+// Function to get full proxied URL - keeping for future reference
 const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
 
 export interface ThreadResponse {
@@ -24,164 +21,57 @@ export interface ThreadResponse {
   status?: string;
 }
 
-// Updated interface based on API documentation/logs and the curl example
 export interface InvokeRequest {
   thread_id: string;
   input: {
-    message: string;  // The actual user prompt
-    canvas: string;   // Canvas placeholder as required by API
+    message: string;
+    canvas: string;
   };
-  stream?: boolean; // Optional streaming parameter
+  stream?: boolean;
 }
 
 export interface InvokeResponse {
   message_id: string;
   thread_id: string;
-  content: any; // Will be parsed as Story object
+  content: any;
   status: string;
 }
 
 /**
  * Creates a new conversation thread
- * Falls back to local mock data if the API is unavailable
+ * Always returns mock data without making API calls
  */
 export const createThread = async (): Promise<ThreadResponse> => {
-  try {
-    console.log('Attempting to create thread with API...');
-    
-    // Add debug logging for the full URL
-    const url = getProxiedUrl('/headless/thread');
-    console.log('Thread API URL:', url);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
-    });
-    
-    // Log the response type to debug
-    console.log('Thread API response status:', response.status);
-    const responseText = await response.text();
-    console.log('Thread API response text preview:', responseText.substring(0, 200));
-    
-    // Try to parse the response as JSON
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('Failed to parse API response as JSON:', parseError);
-      throw new Error('Invalid JSON response from API');
-    }
-    
-    console.log('Successfully created thread:', data);
-    return data;
-  } catch (error) {
-    console.error('Error creating thread:', error);
-    
-    // Instead of throwing, return a mock response
-    console.log('Falling back to mock thread response');
-    return {
-      thread_id: `mock-thread-${Date.now()}`,
-      status: 'success'
-    };
-  }
+  console.log('Creating mock thread');
+  
+  // Always return a mock response without attempting API call
+  return {
+    thread_id: `mock-thread-${Date.now()}`,
+    status: 'success'
+  };
 };
 
 /**
  * Invokes a conversation with a prompt
- * Falls back to dummy data if the API is unavailable
+ * Always returns dummy data without making API calls
  */
 export const invokeThread = async (
   threadId: string, 
   prompt: string
 ): Promise<Story> => {
-  try {
-    console.log(`Attempting to invoke thread ${threadId} with prompt: ${prompt}`);
-    
-    // Add debug logging for the full URL
-    const url = getProxiedUrl('/headless/invoke');
-    console.log('Invoke API URL:', url);
-    
-    // Updated request body format - wrap everything in a "body" field as required by the API
-    const requestPayload = {
-      body: {
-        thread_id: threadId,
-        input: {
-          message: prompt,
-          canvas: "placeholder"
-        },
-        stream: false
-      }
-    };
-    
-    console.log('Invoke API request payload:', JSON.stringify(requestPayload));
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'accept': 'application/json'
-      },
-      body: JSON.stringify(requestPayload)
-    });
-    
-    // Log the response type to debug
-    console.log('Invoke API response status:', response.status);
-    const responseText = await response.text();
-    console.log('Invoke API response text preview:', responseText.substring(0, 200));
-    
-    // Try to parse the response as JSON
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('Failed to parse API response as JSON:', parseError);
-      throw new Error('Invalid JSON response from API');
+  console.log(`Using dummy data for prompt: ${prompt}`);
+  
+  // Return the dummy building story with the original prompt
+  const dummyStory = {
+    ...tallestBuildingsStory,
+    originalPrompt: prompt,
+    metadata: {
+      ...tallestBuildingsStory.metadata,
+      thread_id: threadId
     }
-    
-    console.log('Successfully received response:', data);
-    
-    // If the API returned an error detail, throw it
-    if (data.detail) {
-      throw new Error(`API error: ${JSON.stringify(data.detail)}`);
-    }
-    
-    // We need to extract the content more carefully based on the actual response structure
-    let storyContent;
-    
-    // Check different potential response formats
-    if (data.content) {
-      storyContent = data.content;
-    } else if (data.response) {
-      storyContent = data.response;
-    } else if (typeof data === 'object' && Object.keys(data).length > 0) {
-      // If there's no content field but we got an object, try to use it directly
-      storyContent = data;
-    } else {
-      throw new Error('API response missing usable content');
-    }
-    
-    console.log('Extracted story content:', storyContent);
-    
-    return parseStoryFromResponse(storyContent, prompt, threadId);
-  } catch (error) {
-    console.error('Error invoking thread:', error);
-    
-    // Instead of throwing, return dummy data
-    console.log('Falling back to dummy story data');
-    const fallbackStory = {
-      ...tallestBuildingsStory,
-      originalPrompt: prompt,
-      metadata: {
-        ...tallestBuildingsStory.metadata,
-        thread_id: threadId
-      }
-    };
-    
-    return fallbackStory;
-  }
+  };
+  
+  return dummyStory;
 };
 
 /**
