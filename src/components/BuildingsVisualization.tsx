@@ -187,7 +187,7 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
       
       // Main tower
       const towerGeometry = new THREE.BoxGeometry(width, scaledHeight, depth);
-      const towerMaterial = new THREE.MeshPhongMaterial({ 
+      const towerMaterial = new THREE.MeshStandardMaterial({ 
         color: building.color,
         metalness: 0.7,
         roughness: 0.3,
