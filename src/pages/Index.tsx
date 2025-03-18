@@ -1,6 +1,4 @@
-
-import React, { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
+import React, { useState } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
 import StoryContainer from "@/components/StoryContainer";
@@ -11,16 +9,13 @@ import { createThread, invokeThread } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import BuildingsVisualization from "@/components/BuildingsVisualization";
 
 const Index = () => {
   const [storyState, setStoryState] = useState<StoryState>('idle');
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const navigate = useNavigate();
 
   // Handle navigation to the Three.js sketch page
@@ -44,129 +39,6 @@ const Index = () => {
     console.log("Story has Three.js content:", hasThreeJs);
     setHasValidThreeJsContent(hasThreeJs);
   }, [activeStory, storyState]);
-
-  // Setup Three.js scene and renderer - only when storyState is 'ready' AND we have valid Three.js content
-  useEffect(() => {
-    // Only initialize Three.js after story is ready AND we have valid Three.js content
-    if (storyState !== 'ready' || !hasValidThreeJsContent || !canvasRef.current) {
-      // Clean up any existing Three.js instance
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
-        rendererRef.current = null;
-      }
-      return;
-    }
-    
-    console.log("Setting up Three.js scene after API response validation");
-    const canvas = canvasRef.current;
-    
-    if (rendererRef.current) {
-      rendererRef.current.dispose();
-    }
-    
-    const renderer = new THREE.WebGLRenderer({ 
-      canvas, 
-      antialias: true,
-      alpha: true 
-    });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    rendererRef.current = renderer;
-
-    const scene = new THREE.Scene();
-    sceneRef.current = scene;
-
-    const camera = new THREE.PerspectiveCamera(
-      75, 
-      window.innerWidth / window.innerHeight, 
-      0.1, 
-      1000
-    );
-    camera.position.z = 10;
-    cameraRef.current = camera;
-
-    // Add basic lighting to ensure visibility
-    const ambientLight = new THREE.AmbientLight(0x404040, 2);
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
-
-    // Create a simple, visible geometry - similar to what works in the sketch page
-    const geometry = new THREE.BoxGeometry(3, 3, 3);
-    const material = new THREE.MeshStandardMaterial({ 
-      color: 0x3b82f6,
-      metalness: 0.7,
-      roughness: 0.3
-    });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
-
-    // Add a torus knot for visual interest
-    const torusGeometry = new THREE.TorusKnotGeometry(1.5, 0.5, 100, 16);
-    const torusMaterial = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      metalness: 0.8,
-      roughness: 0.2
-    });
-    const torusKnot = new THREE.Mesh(torusGeometry, torusMaterial);
-    torusKnot.position.set(-4, 0, 0);
-    scene.add(torusKnot);
-
-    // Add a sphere
-    const sphereGeometry = new THREE.SphereGeometry(1.5, 32, 32);
-    const sphereMaterial = new THREE.MeshStandardMaterial({
-      color: 0x10b981,
-      metalness: 0.6,
-      roughness: 0.4
-    });
-    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphere.position.set(4, 0, 0);
-    scene.add(sphere);
-
-    // Create a grid helper for orientation
-    const gridHelper = new THREE.GridHelper(20, 20, 0x888888, 0x444444);
-    scene.add(gridHelper);
-
-    const animate = () => {
-      if (!canvasRef.current || storyState !== 'ready') return;
-      
-      requestAnimationFrame(animate);
-      
-      // Add animation to objects for visual interest
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
-      torusKnot.rotation.x += 0.01;
-      torusKnot.rotation.y += 0.01;
-      sphere.rotation.x += 0.01;
-      sphere.rotation.y += 0.01;
-      
-      if (rendererRef.current && sceneRef.current && cameraRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
-      }
-    };
-    
-    animate();
-
-    const handleResize = () => {
-      if (cameraRef.current && rendererRef.current) {
-        cameraRef.current.aspect = window.innerWidth / window.innerHeight;
-        cameraRef.current.updateProjectionMatrix();
-        rendererRef.current.setSize(window.innerWidth, window.innerHeight);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
-        rendererRef.current = null;
-      }
-    };
-  }, [storyState, hasValidThreeJsContent]); // Re-run when storyState or hasValidThreeJsContent changes
 
   const handlePromptSubmit = async (prompt: string) => {
     setStoryState('loading');
@@ -194,6 +66,7 @@ const Index = () => {
       console.log('Successfully received story:', story.title);
       setActiveStory(story);
       setStoryState('ready');
+      setHasValidThreeJsContent(true); // Force enable visualization for now
       toast.success("Your story is ready!");
       
     } catch (error) {
@@ -207,6 +80,7 @@ const Index = () => {
       });
       
       setStoryState('ready');
+      setHasValidThreeJsContent(true); // Force enable visualization for demo data
     }
   };
 
@@ -218,18 +92,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background relative">
-      {/* Only show the canvas container when in ready state AND we have valid Three.js content */}
+      {/* Only show the buildings visualization when in ready state AND we have valid Three.js content */}
       {storyState === 'ready' && hasValidThreeJsContent && (
         <div className="relative w-full h-screen">
-          <canvas
-            ref={canvasRef}
-            className="absolute top-0 left-0 w-full h-full"
-            style={{ zIndex: 0 }}
-          />
+          <BuildingsVisualization story={activeStory} />
           
-          {/* Navigation Header - Increased z-index and added pointer-events-auto */}
+          {/* Navigation Header */}
           <div className="absolute top-0 left-0 w-full p-4 bg-black/50 text-white z-50 pointer-events-auto">
-            <h2 className="text-lg font-bold">Interactive Storybook Visualization</h2>
+            <h2 className="text-lg font-bold">World's Tallest Buildings Visualization</h2>
             
             <Button 
               variant="outline" 
