@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { X, Maximize2, Minimize2 } from 'lucide-react';
 
 interface VideoPlayerProps {
-  youtubeId: string;
+  videoUrl: string;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ youtubeId }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
 
@@ -35,14 +35,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ youtubeId }) => {
         </button>
       </div>
       
-      <iframe
-        className="w-full h-full"
-        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}`}
-        title="YouTube video player"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      ></iframe>
+      <video
+        className="w-full h-full object-cover"
+        src={videoUrl}
+        autoPlay
+        loop
+        muted
+        playsInline
+      />
     </div>
   );
 };

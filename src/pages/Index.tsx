@@ -92,9 +92,11 @@ const Index = () => {
 
   const youtubeId = getYoutubeId("https://www.youtube.com/watch?v=7wIIzk_aUsg") || "";
 
+  const videoUrl = "https://static-gstudio.gliacloud.com/10903/files/a86e423ead118924eba4577a3505f818aff8c413.mp4";
+
   return (
     <div className="min-h-screen w-full bg-background relative">
-      <VideoPlayer youtubeId={youtubeId} />
+      {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
 
       {storyState === 'ready' && hasValidThreeJsContent && (
         <div className="relative w-full h-screen">
