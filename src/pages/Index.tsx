@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
 import StoryContainer from "@/components/StoryContainer";
+import VideoPlayer from "@/components/VideoPlayer";
 import { Story, StoryState } from "@/types/story";
 import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
@@ -83,8 +84,18 @@ const Index = () => {
     setHasValidThreeJsContent(false);
   };
 
+  const getYoutubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const youtubeId = getYoutubeId("https://www.youtube.com/watch?v=7wIIzk_aUsg") || "";
+
   return (
     <div className="min-h-screen w-full bg-background relative">
+      <VideoPlayer youtubeId={youtubeId} />
+
       {storyState === 'ready' && hasValidThreeJsContent && (
         <div className="relative w-full h-screen">
           <BuildingsVisualization story={activeStory} isActive={storyState === 'ready'} />
