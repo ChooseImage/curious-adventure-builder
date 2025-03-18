@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Story } from '@/types/story';
 
@@ -14,6 +14,7 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const buildingsRef = useRef<THREE.Group | null>(null);
   const scrollY = useRef(0);
+  const [debugScroll, setDebugScroll] = useState(0); // For debugging
   
   // Initialize the 3D scene
   useEffect(() => {
@@ -104,6 +105,9 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
         cameraRef.current.position.z = Math.cos(targetAngle) * cameraRadius;
         cameraRef.current.position.y = cameraY;
         cameraRef.current.lookAt(0, 30, 0);
+        
+        // Update debug state to verify scroll is changing
+        setDebugScroll(scrollY.current);
       }
       
       rendererRef.current.render(sceneRef.current, cameraRef.current);
@@ -126,19 +130,25 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
     // Handle scroll for camera animation
     const handleScroll = () => {
       scrollY.current = window.scrollY;
+      console.log("Scroll position updated:", scrollY.current);
     };
     
     // Initialize scrollY with current scroll position
     scrollY.current = window.scrollY;
+    console.log("Initial scroll position:", scrollY.current);
     
     window.addEventListener('resize', handleResize);
     window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Create a document-level scroll handler to ensure we capture all scroll events
+    document.addEventListener('scroll', handleScroll, { passive: true });
     
     // Cleanup
     return () => {
       console.log("Cleaning up buildings visualization");
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll);
       
       if (rendererRef.current && containerRef.current.contains(rendererRef.current.domElement)) {
         containerRef.current.removeChild(rendererRef.current.domElement);
@@ -279,11 +289,17 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
   };
   
   return (
-    <div 
-      ref={containerRef} 
-      className="w-full h-full absolute top-0 left-0"
-      style={{ zIndex: 0 }}
-    />
+    <div className="relative">
+      <div 
+        ref={containerRef} 
+        className="w-full h-full absolute top-0 left-0"
+        style={{ zIndex: 0 }}
+      />
+      {/* Debug element to show current scroll position */}
+      <div className="fixed top-4 right-4 bg-black/70 text-white px-3 py-1 rounded z-50 text-sm">
+        Scroll: {debugScroll.toFixed(0)}
+      </div>
+    </div>
   );
 };
 

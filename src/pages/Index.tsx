@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -19,20 +18,17 @@ const Index = () => {
   const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
   const navigate = useNavigate();
 
-  // Handle navigation to the Three.js sketch page
   const handleNavigateToSketch = () => {
     console.log("Navigating to /sketch");
     navigate('/sketch');
   };
 
-  // Validate if the story has any Three.js content
   useEffect(() => {
     if (!activeStory || storyState !== 'ready') {
       setHasValidThreeJsContent(false);
       return;
     }
 
-    // Check if any scene has Three.js code
     const hasThreeJs = activeStory.scenes.some(scene => 
       scene.data?.threejs_code || scene.threeJsCode
     );
@@ -67,7 +63,7 @@ const Index = () => {
       console.log('Successfully received story:', story.title);
       setActiveStory(story);
       setStoryState('ready');
-      setHasValidThreeJsContent(true); // Force enable visualization for now
+      setHasValidThreeJsContent(true);
       toast.success("Your story is ready!");
       
     } catch (error) {
@@ -81,7 +77,7 @@ const Index = () => {
       });
       
       setStoryState('ready');
-      setHasValidThreeJsContent(true); // Force enable visualization for demo data
+      setHasValidThreeJsContent(true);
     }
   };
 
@@ -93,12 +89,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background relative">
-      {/* Only show the buildings visualization when in ready state AND we have valid Three.js content */}
       {storyState === 'ready' && hasValidThreeJsContent && (
         <div className="relative w-full h-screen">
           <BuildingsVisualization story={activeStory} />
           
-          {/* Navigation Header */}
           <div className="absolute top-0 left-0 w-full p-4 bg-black/50 text-white z-50 pointer-events-auto">
             <h2 className="text-lg font-bold">World's Tallest Buildings Visualization</h2>
             
@@ -111,6 +105,26 @@ const Index = () => {
               <ExternalLink className="mr-2 h-4 w-4" />
               View Full Screen Three.js Sketch
             </Button>
+          </div>
+          
+          <div className="relative mt-screen">
+            <div className="h-[200vh] bg-gradient-to-b from-transparent to-background pt-[100vh]">
+              <div className="container mx-auto px-4 py-20">
+                <h2 className="text-3xl font-bold mb-6">Scroll to Explore the Buildings</h2>
+                <p className="text-lg mb-8">As you scroll down, watch how the camera flies around the world's tallest buildings.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 shadow-lg">
+                    <h3 className="text-xl font-semibold mb-3">About This Visualization</h3>
+                    <p>This interactive 3D visualization shows the top 10 tallest buildings in the world. 
+                    Scroll to change the camera angle and get different perspectives.</p>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 shadow-lg">
+                    <h3 className="text-xl font-semibold mb-3">Architectural Wonders</h3>
+                    <p>These incredible structures represent some of humanity's greatest architectural and engineering achievements.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
