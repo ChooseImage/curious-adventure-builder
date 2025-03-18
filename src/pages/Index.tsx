@@ -60,8 +60,8 @@ const Index = () => {
       toast.info("Starting stream...");
       streamThread(currentThreadId, prompt, (eventType, data) => {
         console.log(`Stream event received: ${eventType}`, data);
-        if (eventType === 'data') {
-          setStreamingContent(prev => [...prev, data]);
+        if (eventType === 'data' || eventType === 'metadata') {
+          setStreamingContent(prev => [...prev, { type: eventType, data }]);
         } else if (eventType === 'error') {
           console.error('Stream error:', data);
           toast.error(`Stream error: ${data.message}`);
@@ -117,13 +117,16 @@ const Index = () => {
       {streamingContent.length > 0 && (
         <div className="fixed top-4 right-4 w-80 max-h-[400px] overflow-auto bg-black/80 text-white p-4 rounded-lg z-50 font-mono text-xs">
           <h3 className="text-sm font-bold mb-2">Stream Response:</h3>
-          <pre className="whitespace-pre-wrap">
+          <div className="overflow-y-auto max-h-[350px]">
             {streamingContent.map((item, index) => (
               <div key={index} className="mb-2 pb-2 border-b border-white/20">
-                {JSON.stringify(item, null, 2)}
+                <div className="text-xs text-green-400 mb-1">{item.type}:</div>
+                <pre className="whitespace-pre-wrap text-xs overflow-hidden text-ellipsis">
+                  {JSON.stringify(item.data, null, 2)}
+                </pre>
               </div>
             ))}
-          </pre>
+          </div>
         </div>
       )}
 

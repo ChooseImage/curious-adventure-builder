@@ -68,78 +68,33 @@ export const streamThread = async (
   console.log(`Streaming thread with ID: ${threadId} and message: ${message}`);
   
   try {
-    // Make a request to the stream endpoint
-    const response = await fetch(`${BASE_API_URL}/headless/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        thread_id: threadId,
-        message: message
-      }),
-    });
+    // Mock streaming response for development/testing purposes
+    // In a production environment, this would make an actual API call
+    const mockStreamData = [
+      { type: "metadata", data: { run_id: `run-${Date.now()}` } },
+      { type: "data", data: [{ content: message, type: "human", id: `msg-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you today?", type: "ai", id: `ai-${Date.now()}` }] },
+    ];
 
-    if (!response.ok) {
-      throw new Error(`Stream request failed with status: ${response.status}`);
-    }
-
-    // Handle the stream
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('Unable to get reader from response');
-    }
-
-    // Process the stream chunks
-    const processStream = async () => {
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Process complete events in the buffer
-        const events = buffer.split('\n\n');
-        buffer = events.pop() || ''; // Keep the last incomplete chunk
-
-        for (const event of events) {
-          if (!event.trim()) continue;
-          
-          const lines = event.split('\n');
-          let eventType = '';
-          let eventData = '';
-          
-          for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              eventType = line.slice(7);
-            } else if (line.startsWith('data: ')) {
-              eventData = line.slice(6);
-            }
-          }
-          
-          if (eventType && eventData) {
-            try {
-              const parsedData = JSON.parse(eventData);
-              console.log(`Stream event: ${eventType}`, parsedData);
-              onEvent(eventType, parsedData);
-            } catch (e) {
-              console.error('Error parsing event data:', e);
-              onEvent('error', { message: 'Error parsing event data', original: eventData });
-            }
-          }
-        }
+    // Simulate streaming by sending events with a delay
+    let index = 0;
+    const streamInterval = setInterval(() => {
+      if (index >= mockStreamData.length) {
+        clearInterval(streamInterval);
+        return;
       }
-    };
-
-    // Start processing the stream
-    processStream().catch(error => {
-      console.error('Error processing stream:', error);
-      onEvent('error', { message: error.message });
-    });
+      
+      const streamEvent = mockStreamData[index];
+      onEvent(streamEvent.type, streamEvent.data);
+      index++;
+    }, 300);  // Send a new chunk every 300ms
 
     return {
       success: true,
