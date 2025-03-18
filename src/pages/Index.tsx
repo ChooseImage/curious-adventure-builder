@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -88,7 +87,7 @@ const Index = () => {
     <div className="min-h-screen w-full bg-background relative">
       {storyState === 'ready' && hasValidThreeJsContent && (
         <div className="relative w-full h-screen">
-          <BuildingsVisualization story={activeStory} />
+          <BuildingsVisualization story={activeStory} isActive={storyState === 'ready'} />
           
           <div className="absolute top-0 left-0 w-full p-4 bg-black/50 text-white z-50 pointer-events-auto">
             <h2 className="text-lg font-bold">World's Tallest Buildings Visualization</h2>

@@ -1,21 +1,59 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, StrictMode } from 'react';
 import * as THREE from 'three';
 import { Story } from '@/types/story';
 
 interface BuildingsVisualizationProps {
   story: Story | null;
+  isActive?: boolean;
 }
 
-const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }) => {
+const BuildingsVisualizationInner: React.FC<BuildingsVisualizationProps> = ({ story, isActive = true }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const buildingsRef = useRef<THREE.Group | null>(null);
-  const scrollY = useRef(0);
-  const [debugScroll, setDebugScroll] = useState(0); // For debugging
-  
+  const animationRef = useRef<number | null>(null);
+
+  console.log("BuildingsVisualization component rendering");
+
+  // Camera animation function
+  const animateCamera = (time: number) => {
+    if (cameraRef.current) {
+      const speed = 0.0001;
+      const angle = time * speed;
+      const cameraRadius = 120;
+      const cameraHeight = 50 + Math.sin(time * 0.0005) * 20;
+
+      cameraRef.current.position.x = Math.sin(angle) * cameraRadius;
+      cameraRef.current.position.z = Math.cos(angle) * cameraRadius;
+      cameraRef.current.position.y = cameraHeight;
+      cameraRef.current.lookAt(0, 30, 0);
+    }
+  };
+
+  // Set up animation loop
+  useEffect(() => {
+    if (isActive) {
+      const animate = (time: number) => {
+        animateCamera(time);
+        if (rendererRef.current && sceneRef.current && cameraRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+        }
+        animationRef.current = requestAnimationFrame(animate);
+      };
+
+      animationRef.current = requestAnimationFrame(animate);
+
+      return () => {
+        if (animationRef.current !== null) {
+          cancelAnimationFrame(animationRef.current);
+        }
+      };
+    }
+  }, [isActive]);
+
   // Initialize the 3D scene
   useEffect(() => {
     if (!containerRef.current || !story) return;
@@ -87,33 +125,11 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
     // Create buildings
     createBuildings();
     
-    // Animation loop
-    const animate = () => {
-      if (!containerRef.current || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
-      
-      requestAnimationFrame(animate);
-      
-      // Camera movement based on scroll
-      if (buildingsRef.current) {
-        // Rotate camera around building group based on scroll position
-        const targetAngle = scrollY.current * 0.003;
-        const cameraRadius = 80;
-        const cameraHeight = 30 + scrollY.current * 0.05;
-        const cameraY = Math.min(80, Math.max(30, cameraHeight));
-        
-        cameraRef.current.position.x = Math.sin(targetAngle) * cameraRadius;
-        cameraRef.current.position.z = Math.cos(targetAngle) * cameraRadius;
-        cameraRef.current.position.y = cameraY;
-        cameraRef.current.lookAt(0, 30, 0);
-        
-        // Update debug state to verify scroll is changing
-        setDebugScroll(scrollY.current);
-      }
-      
-      rendererRef.current.render(sceneRef.current, cameraRef.current);
-    };
-    
-    animate();
+    // Initial camera setup
+    if (cameraRef.current) {
+      cameraRef.current.position.set(120, 50, 0);
+      cameraRef.current.lookAt(0, 30, 0);
+    }
     
     // Handle window resize
     const handleResize = () => {
@@ -127,36 +143,24 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
       rendererRef.current.setSize(width, height);
     };
     
-    // Handle scroll for camera animation
-    const handleScroll = () => {
-      scrollY.current = window.scrollY;
-      console.log("Scroll position updated:", scrollY.current);
-    };
-    
-    // Initialize scrollY with current scroll position
-    scrollY.current = window.scrollY;
-    console.log("Initial scroll position:", scrollY.current);
-    
     window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // Create a document-level scroll handler to ensure we capture all scroll events
-    document.addEventListener('scroll', handleScroll, { passive: true });
     
     // Cleanup
     return () => {
       console.log("Cleaning up buildings visualization");
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('scroll', handleScroll);
       
-      // Add null checks to prevent the error
-      if (rendererRef.current && containerRef.current && containerRef.current.contains(rendererRef.current.domElement)) {
-        try {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      
+      try {
+        if (rendererRef.current && containerRef.current && containerRef.current.contains(rendererRef.current.domElement)) {
           containerRef.current.removeChild(rendererRef.current.domElement);
-        } catch (error) {
-          console.warn("Error removing renderer from container:", error);
         }
+      } catch (error) {
+        console.warn("Error removing renderer from container:", error);
       }
       
       if (rendererRef.current) {
@@ -164,7 +168,7 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
         rendererRef.current = null;
       }
     };
-  }, [story]);
+  }, [story, isActive]);
   
   // Function to create buildings based on data
   const createBuildings = () => {
@@ -294,17 +298,19 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
   };
   
   return (
-    <div className="relative">
-      <div 
-        ref={containerRef} 
-        className="w-full h-full absolute top-0 left-0"
-        style={{ zIndex: 0 }}
-      />
-      {/* Debug element to show current scroll position */}
-      <div className="fixed top-4 right-4 bg-black/70 text-white px-3 py-1 rounded z-50 text-sm">
-        Scroll: {debugScroll.toFixed(0)}
-      </div>
-    </div>
+    <div 
+      ref={containerRef} 
+      className="w-full h-full absolute top-0 left-0"
+      style={{ zIndex: 0 }}
+    />
+  );
+};
+
+const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = (props) => {
+  return (
+    <StrictMode>
+      <BuildingsVisualizationInner {...props} />
+    </StrictMode>
   );
 };
 
