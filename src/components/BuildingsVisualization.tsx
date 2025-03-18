@@ -150,8 +150,13 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('scroll', handleScroll);
       
-      if (rendererRef.current && containerRef.current.contains(rendererRef.current.domElement)) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
+      // Add null checks to prevent the error
+      if (rendererRef.current && containerRef.current && containerRef.current.contains(rendererRef.current.domElement)) {
+        try {
+          containerRef.current.removeChild(rendererRef.current.domElement);
+        } catch (error) {
+          console.warn("Error removing renderer from container:", error);
+        }
       }
       
       if (rendererRef.current) {
