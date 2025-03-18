@@ -128,8 +128,11 @@ const BuildingsVisualization: React.FC<BuildingsVisualizationProps> = ({ story }
       scrollY.current = window.scrollY;
     };
     
+    // Initialize scrollY with current scroll position
+    scrollY.current = window.scrollY;
+    
     window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     
     // Cleanup
     return () => {
