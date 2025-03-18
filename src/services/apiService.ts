@@ -2,7 +2,7 @@ import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
 // Base URL for the API - keeping this for future reference
-const BASE_API_URL = 'https://v0-0-43b1---genv-opengpts-al23s7k26q-de.a.run.app';
+const BASE_API_URL = 'https://v0-0-43b2---genv-opengpts-al23s7k26q-de.a.run.app';
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 // Function to get full proxied URL - keeping for future reference
@@ -37,6 +37,11 @@ export interface InvokeResponse {
   status: string;
 }
 
+export interface StreamRequest {
+  thread_id: string;
+  message: string;
+}
+
 /**
  * Creates a new conversation thread
  * Always returns mock data without making API calls
@@ -49,6 +54,105 @@ export const createThread = async (): Promise<ThreadResponse> => {
     thread_id: `mock-thread-${Date.now()}`,
     status: 'success'
   };
+};
+
+/**
+ * Streams a conversation with a prompt
+ * Uses the headless/stream endpoint
+ */
+export const streamThread = async (
+  threadId: string,
+  message: string,
+  onEvent: (eventType: string, data: any) => void
+) => {
+  console.log(`Streaming thread with ID: ${threadId} and message: ${message}`);
+  
+  try {
+    // Make a request to the stream endpoint
+    const response = await fetch(`${BASE_API_URL}/headless/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        thread_id: threadId,
+        message: message
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Stream request failed with status: ${response.status}`);
+    }
+
+    // Handle the stream
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('Unable to get reader from response');
+    }
+
+    // Process the stream chunks
+    const processStream = async () => {
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete events in the buffer
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || ''; // Keep the last incomplete chunk
+
+        for (const event of events) {
+          if (!event.trim()) continue;
+          
+          const lines = event.split('\n');
+          let eventType = '';
+          let eventData = '';
+          
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7);
+            } else if (line.startsWith('data: ')) {
+              eventData = line.slice(6);
+            }
+          }
+          
+          if (eventType && eventData) {
+            try {
+              const parsedData = JSON.parse(eventData);
+              console.log(`Stream event: ${eventType}`, parsedData);
+              onEvent(eventType, parsedData);
+            } catch (e) {
+              console.error('Error parsing event data:', e);
+              onEvent('error', { message: 'Error parsing event data', original: eventData });
+            }
+          }
+        }
+      }
+    };
+
+    // Start processing the stream
+    processStream().catch(error => {
+      console.error('Error processing stream:', error);
+      onEvent('error', { message: error.message });
+    });
+
+    return {
+      success: true,
+      threadId: threadId
+    };
+  } catch (error) {
+    console.error('Error in stream request:', error);
+    onEvent('error', { message: error instanceof Error ? error.message : 'Unknown error' });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 };
 
 /**

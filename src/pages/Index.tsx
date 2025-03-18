@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -6,7 +7,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import { Story, StoryState } from "@/types/story";
 import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
-import { createThread, invokeThread } from "@/services/apiService";
+import { createThread, invokeThread, streamThread } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ const Index = () => {
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
+  const [streamingContent, setStreamingContent] = useState<any[]>([]);
   const navigate = useNavigate();
 
   const handleNavigateToSketch = () => {
@@ -41,6 +43,7 @@ const Index = () => {
   const handlePromptSubmit = async (prompt: string) => {
     setStoryState('loading');
     toast.info("Generating your story...");
+    setStreamingContent([]);
     
     try {
       let currentThreadId = threadId;
@@ -52,6 +55,18 @@ const Index = () => {
         console.log('Created new thread:', currentThreadId);
         toast.success("Thread created successfully!");
       }
+      
+      // Start streaming response
+      toast.info("Starting stream...");
+      streamThread(currentThreadId, prompt, (eventType, data) => {
+        console.log(`Stream event received: ${eventType}`, data);
+        if (eventType === 'data') {
+          setStreamingContent(prev => [...prev, data]);
+        } else if (eventType === 'error') {
+          console.error('Stream error:', data);
+          toast.error(`Stream error: ${data.message}`);
+        }
+      });
       
       toast.info("Generating content from dummy data...");
       const story = await invokeThread(currentThreadId, prompt);
@@ -82,6 +97,7 @@ const Index = () => {
     setStoryState('idle');
     setActiveStory(null);
     setHasValidThreeJsContent(false);
+    setStreamingContent([]);
   };
 
   const getYoutubeId = (url: string) => {
@@ -97,6 +113,19 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full bg-background relative">
       {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
+
+      {streamingContent.length > 0 && (
+        <div className="fixed top-4 right-4 w-80 max-h-[400px] overflow-auto bg-black/80 text-white p-4 rounded-lg z-50 font-mono text-xs">
+          <h3 className="text-sm font-bold mb-2">Stream Response:</h3>
+          <pre className="whitespace-pre-wrap">
+            {streamingContent.map((item, index) => (
+              <div key={index} className="mb-2 pb-2 border-b border-white/20">
+                {JSON.stringify(item, null, 2)}
+              </div>
+            ))}
+          </pre>
+        </div>
+      )}
 
       {storyState === 'ready' && hasValidThreeJsContent && (
         <div className="relative w-full h-screen">
