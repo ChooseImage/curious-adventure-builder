@@ -28,12 +28,18 @@ export const streamConversation = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Origin': window.location.origin,
       },
+      mode: 'cors', // Explicitly set CORS mode
+      credentials: 'omit', // Don't send cookies
       body: JSON.stringify({ message }),
     });
     
     if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`API error (${response.status}): ${errorText}`);
+      throw new Error(`API responded with status: ${response.status} - ${errorText}`);
     }
     
     // Use the native Response.body to handle streaming properly
@@ -63,6 +69,21 @@ export const streamConversation = async (
   } catch (error) {
     console.error('Error in stream request:', error);
     onEvent('error', { message: error instanceof Error ? error.message : 'Unknown error' });
+    
+    // Try to determine if this is a CORS error
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isCorsError = 
+      errorMessage.includes('CORS') || 
+      errorMessage.includes('Cross-Origin') ||
+      errorMessage.includes('Failed to fetch');
+    
+    if (isCorsError) {
+      return {
+        success: false,
+        error: "CORS error: The API server doesn't allow requests from this origin. Using fallback data instead."
+      };
+    }
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -96,6 +117,15 @@ const processBuffer = (buffer: string, onEvent: (eventType: string, data: any) =
         } catch (e) {
           console.error('Error parsing event data:', e, dataMatch[1]);
           onEvent('error', { message: 'Error parsing event data', rawData: dataMatch[1] });
+        }
+      } else if (dataMatch) {
+        // Some SSE implementations don't use the event field
+        try {
+          const eventData = JSON.parse(dataMatch[1].trim());
+          onEvent('data', eventData);
+        } catch (e) {
+          console.error('Error parsing data:', e, dataMatch[1]);
+          onEvent('error', { message: 'Error parsing data', rawData: dataMatch[1] });
         }
       } else {
         console.warn('Malformed SSE event:', event);
