@@ -56,9 +56,18 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     setIsLoading(false);
   };
 
+  // Function to add paragraph spacing to content
+  const formatContent = (content: string) => {
+    if (!content) return '';
+    // Split by paragraphs and join with increased spacing
+    return content.split('\n').map((paragraph, index) => (
+      <p key={index} className="mb-6 leading-relaxed">{paragraph}</p>
+    ));
+  };
+
   return (
-    <div className="relative min-h-screen flex flex-col">
-      {/* Background HTML */}
+    <div className="relative min-h-screen">
+      {/* The background HTML iframe takes full screen */}
       <div className="fixed inset-0 w-full h-full z-0">
         {chapter.html ? (
           <>
@@ -81,42 +90,38 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         )}
       </div>
       
-      {/* Content overlay */}
-      <div className="relative z-10 w-full max-w-4xl mx-auto min-h-screen flex flex-col px-4 py-8">
-        {/* Navigation header */}
-        <header className="bg-black/40 backdrop-blur-md rounded-lg p-4 mb-8 flex justify-between items-center">
+      {/* Semi-transparent article container */}
+      <div className="relative z-10 pt-8 pb-16 px-4 min-h-screen flex flex-col items-center">
+        {/* Navigation header - smaller and more subtle */}
+        <header className="w-full max-w-3xl mx-auto flex justify-between items-center mb-12 px-4">
           <Link to="/">
-            <Button variant="outline" size="sm" className="text-white border-white/40 bg-black/30">
+            <Button variant="outline" size="sm" className="backdrop-blur-md bg-black/20 text-white border-white/20 hover:bg-black/30">
               <Home className="h-4 w-4 mr-2" />
-              Back to Home
+              Home
             </Button>
           </Link>
           
-          <div className="text-white text-sm font-medium">
+          <div className="text-white text-sm font-medium backdrop-blur-md bg-black/20 px-3 py-1.5 rounded-full">
             Chapter {chapterIndex + 1} of {totalChapters}
           </div>
         </header>
         
-        {/* Main content */}
-        <div className="flex-grow flex flex-col mb-20">
-          <div className="bg-black/60 backdrop-blur-md rounded-lg p-8 flex-grow">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              {chapter.article.title || "Chapter Title Not Available"}
-            </h1>
-            
-            <ScrollArea className="h-[calc(100vh-300px)] pr-4">
-              <div className="text-white/90 text-lg leading-relaxed whitespace-pre-line">
-                {chapter.article.content || "Chapter content not available"}
-              </div>
-            </ScrollArea>
+        {/* Article content with better spacing */}
+        <article className="prose prose-lg prose-invert max-w-3xl w-full mx-auto px-6 py-8 backdrop-blur-sm bg-black/30 rounded-xl border border-white/10">
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-8 leading-tight">
+            {chapter.article.title || "Chapter Title Not Available"}
+          </h1>
+          
+          <div className="text-white/90 text-lg space-y-6 font-serif">
+            {formatContent(chapter.article.content)}
           </div>
-        </div>
+        </article>
         
-        {/* Navigation footer */}
-        <footer className="bg-black/40 backdrop-blur-md rounded-lg p-4 flex justify-between items-center">
+        {/* Navigation footer - more subtle and positioned at bottom */}
+        <footer className="w-full max-w-3xl mx-auto flex justify-between items-center mt-12 px-4">
           {prevChapter ? (
             <Link to={prevChapter}>
-              <Button variant="outline" size="sm" className="text-white border-white/40 bg-black/30">
+              <Button variant="outline" size="sm" className="backdrop-blur-md bg-black/20 text-white border-white/20 hover:bg-black/30">
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous Chapter
               </Button>
@@ -127,14 +132,14 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
           
           {nextChapter ? (
             <Link to={nextChapter}>
-              <Button variant="outline" size="sm" className="text-white border-white/40 bg-black/30">
+              <Button variant="outline" size="sm" className="backdrop-blur-md bg-black/20 text-white border-white/20 hover:bg-black/30">
                 Next Chapter
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
           ) : (
             <Link to="/">
-              <Button variant="outline" size="sm" className="text-white border-white/40 bg-black/30">
+              <Button variant="outline" size="sm" className="backdrop-blur-md bg-black/20 text-white border-white/20 hover:bg-black/30">
                 Finish Story
                 <Home className="h-4 w-4 ml-2" />
               </Button>
