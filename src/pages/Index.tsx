@@ -8,8 +8,8 @@ import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
 import { streamConversation, invokeConversation } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ExternalLink, RefreshCw, Code, Settings } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { AlertCircle, ExternalLink, RefreshCw, Code, Settings, Book } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import BuildingsVisualization from "@/components/BuildingsVisualization";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import StreamDebugger from "@/components/StreamDebugger";
@@ -29,11 +29,17 @@ const Index = () => {
   const [showStreamDebug, setShowStreamDebug] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [storyChapters, setStoryChapters] = useState<any[]>([]);
   const navigate = useNavigate();
 
   // Function to log streaming content both to state and console
   const logStreamContent = (eventType: string, data: any) => {
     console.log(`Stream event received (${eventType}):`, data);
+    
+    // Process result type content with chapters
+    if (eventType === "result" && data.content && Array.isArray(data.content.scenes)) {
+      setStoryChapters(data.content.scenes);
+    }
     
     // Add to state for UI display
     setStreamingContent(prev => {
@@ -47,6 +53,11 @@ const Index = () => {
       
       return [...prev, newItem];
     });
+  };
+
+  // Function to navigate to story chapter with chapters data
+  const handleNavigateToStory = (chapterId: number) => {
+    navigate(`/story/${chapterId}`, { state: { chapters: storyChapters } });
   };
 
   const handleNavigateToSketch = () => {
@@ -74,6 +85,7 @@ const Index = () => {
     setIsRetrying(false);
     toast.info("Generating your story...");
     setStreamingContent([]);
+    setStoryChapters([]);
     
     try {
       // Start streaming response from API
@@ -81,6 +93,11 @@ const Index = () => {
       const streamResponse = await streamConversation(prompt, (eventType, data) => {
         // Use our logStreamContent function to log the streaming content
         logStreamContent(eventType, data);
+        
+        // Check if this is a result type with chapters
+        if (eventType === "result" && data.content && Array.isArray(data.content.scenes)) {
+          setStoryChapters(data.content.scenes);
+        }
       });
       
       // Check if there was an error with streaming
@@ -169,6 +186,30 @@ const Index = () => {
         streamingContent={streamingContent} 
         visible={showStreamDebug} 
       />
+
+      {/* Story Chapters Section - Shows when chapters are available */}
+      {storyChapters.length > 0 && storyState === 'ready' && (
+        <div className="fixed top-20 left-0 right-0 z-50 flex justify-center">
+          <div className="bg-black/80 backdrop-blur-md p-6 rounded-lg max-w-2xl">
+            <h2 className="text-2xl font-semibold text-white mb-4">Your Storybook</h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {storyChapters.map((chapter, index) => (
+                <Button 
+                  key={index} 
+                  variant="outline"
+                  className="bg-white/10 hover:bg-white/20 text-white h-auto flex flex-col items-center p-4"
+                  onClick={() => handleNavigateToStory(index + 1)}
+                >
+                  <Book className="h-8 w-8 mb-2 text-primary" />
+                  <span className="text-sm font-medium">{chapter.article.title}</span>
+                  <span className="mt-1 text-xs text-white/70">Chapter {index + 1}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {apiError && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center max-w-md">
@@ -376,7 +417,7 @@ const Index = () => {
       
       <StoryContainer 
         story={activeStory} 
-        isVisible={storyState === 'ready'}
+        isVisible={storyState === 'ready' && storyChapters.length === 0}
         onReset={handleReset}
       />
       
