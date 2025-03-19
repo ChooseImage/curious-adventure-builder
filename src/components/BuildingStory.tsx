@@ -3,19 +3,23 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Story, StoryScene } from '@/types/story';
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
-import { ChevronDown, RefreshCw, MessageSquare } from 'lucide-react';
+import { ChevronDown, RefreshCw, MessageSquare, Book } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from './ui/button';
 
 interface BuildingStoryProps {
   story: Story;
   onReset: () => void;
+  storyChapters?: any[];
 }
 
-const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
+const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset, storyChapters = [] }) => {
   const [activeSceneIndex, setActiveSceneIndex] = useState(0);
   const [scenes, setScenes] = useState<Map<string, any>>(new Map());
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const navigate = useNavigate();
 
   // Initialize refs
   useEffect(() => {
@@ -145,6 +149,11 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
     }
   };
 
+  // Navigate to story chapter
+  const handleNavigateToStory = (chapterId: number) => {
+    navigate(`/story/${chapterId}`, { state: { chapters: storyChapters } });
+  };
+
   // Scroll to next section
   const scrollToNextSection = () => {
     const nextIndex = Math.min(activeSceneIndex + 1, story.scenes.length - 1);
@@ -177,6 +186,27 @@ const BuildingStory: React.FC<BuildingStoryProps> = ({ story, onReset }) => {
             </div>
           )}
         </div>
+
+        {/* Display story chapters if available */}
+        {storyChapters && storyChapters.length > 0 && (
+          <div className="mt-12 w-full max-w-4xl">
+            <h2 className="text-2xl font-semibold mb-6 text-center">Your Storybook Chapters</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {storyChapters.map((chapter, index) => (
+                <Button 
+                  key={index} 
+                  variant="outline"
+                  className="bg-white/10 hover:bg-white/20 h-auto flex flex-col items-center p-6"
+                  onClick={() => handleNavigateToStory(index + 1)}
+                >
+                  <Book className="h-10 w-10 mb-3 text-primary" />
+                  <span className="text-base font-medium text-center">{chapter.article.title}</span>
+                  <span className="mt-2 text-sm text-muted-foreground">Chapter {index + 1}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* First scene canvas */}
         {(story.scenes[0].data?.threejs_code || story.scenes[0].threeJsCode) && (

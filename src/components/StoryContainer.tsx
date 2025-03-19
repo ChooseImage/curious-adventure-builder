@@ -8,12 +8,14 @@ interface StoryContainerProps {
   story: Story | null;
   isVisible: boolean;
   onReset: () => void;
+  storyChapters?: any[];
 }
 
 const StoryContainer: React.FC<StoryContainerProps> = ({
   story,
   isVisible,
-  onReset
+  onReset,
+  storyChapters = []
 }) => {
   const [isReady, setIsReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,7 +38,7 @@ const StoryContainer: React.FC<StoryContainerProps> = ({
     if (!story) return null;
     
     // For now, we only have the buildings example
-    return <BuildingStory story={story} onReset={onReset} />;
+    return <BuildingStory story={story} onReset={onReset} storyChapters={storyChapters} />;
   };
 
   return (

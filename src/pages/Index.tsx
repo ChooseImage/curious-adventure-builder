@@ -403,8 +403,9 @@ const Index = () => {
       
       <StoryContainer 
         story={activeStory} 
-        isVisible={storyState === 'ready' && storyChapters.length === 0}
+        isVisible={storyState === 'ready'}
         onReset={handleReset}
+        storyChapters={storyChapters}
       />
       
       <ChatInput 
