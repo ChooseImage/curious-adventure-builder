@@ -369,7 +369,10 @@ const Index = () => {
         </div>
       )}
       
-      <LoadingState isLoading={storyState === 'loading'} />
+      <LoadingState 
+        isLoading={storyState === 'loading'} 
+        streamingContent={streamingContent}
+      />
       
       <StoryContainer 
         story={activeStory} 

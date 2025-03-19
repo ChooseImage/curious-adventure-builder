@@ -1,24 +1,72 @@
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from './ui/scroll-area';
+
+interface StreamMessage {
+  id: string;
+  content: string;
+  type: string;
+  timestamp: string;
+}
 
 interface LoadingStateProps {
   isLoading: boolean;
+  streamingContent?: any[];
 }
 
-const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
+const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent = [] }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const animationRef = useRef<number | null>(null);
   const objectsRef = useRef<THREE.Object3D[]>([]);
+  const [messages, setMessages] = useState<StreamMessage[]>([]);
+
+  useEffect(() => {
+    if (streamingContent.length === 0) {
+      setMessages([]);
+      return;
+    }
+
+    const latestItem = streamingContent[streamingContent.length - 1];
+    if (!latestItem || !latestItem.data) return;
+
+    if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
+      latestItem.data.content.forEach((contentItem: any) => {
+        if (contentItem.id && contentItem.content) {
+          setMessages(prevMessages => {
+            const existingIndex = prevMessages.findIndex(m => m.id === contentItem.id);
+            
+            if (existingIndex === -1) {
+              return [
+                ...prevMessages,
+                {
+                  id: contentItem.id,
+                  content: contentItem.content,
+                  type: contentItem.type || latestItem.type || 'unknown',
+                  timestamp: latestItem.timestamp
+                }
+              ];
+            } else {
+              const updatedMessages = [...prevMessages];
+              updatedMessages[existingIndex] = {
+                ...updatedMessages[existingIndex],
+                content: contentItem.content,
+                timestamp: latestItem.timestamp
+              };
+              return updatedMessages;
+            }
+          });
+        }
+      });
+    }
+  }, [streamingContent]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Initialize Three.js scene
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
@@ -37,11 +85,9 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
 
-    // Create objects
     const objects: THREE.Object3D[] = [];
     objectsRef.current = objects;
 
-    // Create particles
     const particleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
     const particleMaterial = new THREE.MeshBasicMaterial({
       color: 0x3b82f6,
@@ -52,7 +98,6 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
     for (let i = 0; i < 30; i++) {
       const mesh = new THREE.Mesh(particleGeometry, particleMaterial);
       
-      // Position randomly in a sphere
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       const radius = 2 + Math.random() * 3;
@@ -61,12 +106,10 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
       mesh.position.y = radius * Math.sin(phi) * Math.sin(theta);
       mesh.position.z = radius * Math.cos(phi);
       
-      // Store initial position for animation
       mesh.userData.initialX = mesh.position.x;
       mesh.userData.initialY = mesh.position.y;
       mesh.userData.initialZ = mesh.position.z;
       
-      // Random movement parameters
       mesh.userData.speed = 0.2 + Math.random() * 0.3;
       mesh.userData.movementRadius = 0.2 + Math.random() * 0.3;
       
@@ -74,7 +117,6 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
       objects.push(mesh);
     }
 
-    // Add a central object (abstracted book or document shape)
     const bookGeometry = new THREE.BoxGeometry(1.2, 1.6, 0.2);
     const bookMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
@@ -85,7 +127,6 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
     scene.add(book);
     objects.push(book);
 
-    // Add pages
     const pageGeometry = new THREE.PlaneGeometry(1, 1.4);
     const pageMaterial = new THREE.MeshStandardMaterial({
       color: 0xf1f5f9,
@@ -103,7 +144,6 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
       objects.push(page);
     }
 
-    // Add lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
@@ -111,14 +151,12 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
     directionalLight.position.set(5, 10, 7);
     scene.add(directionalLight);
 
-    // Animation function
     const animate = () => {
       if (!isLoading) return;
 
       objects.forEach((obj, index) => {
         if (obj.type === 'Mesh') {
           if (index < 30) {
-            // Particles
             const time = Date.now() * 0.001;
             const speed = obj.userData.speed;
             const radius = obj.userData.movementRadius;
@@ -127,11 +165,9 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
             obj.position.y = obj.userData.initialY + Math.cos(time * speed) * radius;
             obj.position.z = obj.userData.initialZ + Math.sin(time * speed * 0.5) * radius;
           } else if (obj === book) {
-            // Book
             obj.rotation.y += 0.005;
             obj.position.y = Math.sin(Date.now() * 0.001) * 0.1;
           } else {
-            // Pages
             const speed = obj.userData.speed;
             obj.rotation.z = Math.sin(Date.now() * 0.001 * speed) * 0.2;
           }
@@ -145,10 +181,8 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    // Start animation
     animate();
 
-    // Handle window resize
     const handleResize = () => {
       if (!containerRef.current || !renderer || !camera) return;
       
@@ -187,13 +221,27 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading }) => {
         ref={containerRef} 
         className="w-full h-full"
       />
-      <div className="absolute bottom-10 text-center space-y-4">
+      <div className="absolute bottom-20 left-0 right-0 text-center space-y-4 px-4">
         <div className="text-2xl font-light tracking-tight text-primary animate-pulse-soft">
           Creating your storybook...
         </div>
-        <div className="text-sm text-muted-foreground max-w-xs mx-auto">
+        <div className="text-sm text-muted-foreground max-w-xs mx-auto mb-4">
           Crafting an interactive experience just for you
         </div>
+        
+        {messages.length > 0 && (
+          <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg max-w-lg mx-auto">
+            <ScrollArea className="h-32 w-full">
+              <div className="space-y-2 text-left font-mono text-xs text-white/90">
+                {messages.map((message) => (
+                  <div key={message.id} className="pb-2">
+                    <div className="whitespace-pre-wrap">{message.content}</div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
       </div>
     </div>
   );
