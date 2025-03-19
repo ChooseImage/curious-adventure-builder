@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 import { Book, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface StreamMessage {
   id: string;
@@ -25,9 +25,14 @@ interface StoryChapter {
 interface LoadingStateProps {
   isLoading: boolean;
   streamingContent?: any[];
+  onStoryChaptersUpdated?: (chapters: StoryChapter[]) => void;
 }
 
-const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent = [] }) => {
+const LoadingState: React.FC<LoadingStateProps> = ({ 
+  isLoading, 
+  streamingContent = [],
+  onStoryChaptersUpdated
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -37,6 +42,17 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
   const [messages, setMessages] = useState<StreamMessage[]>([]);
   const [storyChapters, setStoryChapters] = useState<StoryChapter[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (storyChapters.length > 0) {
+      console.log('LoadingState - Updated storyChapters:', storyChapters);
+      
+      if (onStoryChaptersUpdated) {
+        onStoryChaptersUpdated(storyChapters);
+      }
+    }
+  }, [storyChapters, onStoryChaptersUpdated]);
 
   useEffect(() => {
     if (streamingContent.length === 0) {
@@ -49,14 +65,12 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
     const latestItem = streamingContent[streamingContent.length - 1];
     if (!latestItem || !latestItem.data) return;
 
-    // Log for debugging
     console.log("Processing latestItem:", latestItem);
 
     if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
       latestItem.data.content.forEach((contentItem: any) => {
         console.log("Content item:", contentItem);
         
-        // Check for the correct scene structure
         if (contentItem.type === "result" && Array.isArray(contentItem.scenes)) {
           console.log("FOUND RESULT WITH SCENES:", contentItem.scenes);
           setStoryChapters(contentItem.scenes);
@@ -65,14 +79,12 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
       });
     }
 
-    // Check direct result scenes
     if (latestItem.type === "result" && latestItem.data.scenes && Array.isArray(latestItem.data.scenes)) {
       console.log("Direct result scenes:", latestItem.data.scenes);
       setStoryChapters(latestItem.data.scenes);
       setIsCompleted(true);
     }
 
-    // Process AI messages
     if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
       latestItem.data.content.forEach((contentItem: any) => {
         if (contentItem.id && contentItem.content) {
@@ -105,7 +117,6 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
       });
     }
     
-    // Handle the exact format the user provided
     if (latestItem.data.content && Array.isArray(latestItem.data.content) && latestItem.data.content.length > 0) {
       const firstItem = latestItem.data.content[0];
       if (firstItem && Array.isArray(firstItem.scenes)) {
@@ -114,7 +125,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
         setIsCompleted(true);
       }
     }
-  }, [streamingContent]);
+  }, [streamingContent, onStoryChaptersUpdated]);
 
   useEffect(() => {
     console.log('UPDATED storyChapters:', storyChapters);
@@ -265,6 +276,12 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
     };
   }, [isLoading]);
 
+  const handleNavigateToStory = (chapterId: number) => {
+    if (storyChapters.length > 0) {
+      navigate(`/story/${chapterId}`, { state: { chapters: storyChapters } });
+    }
+  };
+
   return (
     <div 
       className={cn(
@@ -285,18 +302,18 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {storyChapters.map((chapter, index) => (
-                <Link 
+                <Button 
                   key={index} 
-                  to={`/story/${index + 1}`} 
+                  onClick={() => handleNavigateToStory(index + 1)}
                   className="bg-white/10 hover:bg-white/20 transition-colors rounded-lg p-4 text-white flex flex-col items-center"
                 >
                   <Book className="h-10 w-10 mb-2 text-primary" />
-                  <h3 className="font-medium text-sm text-center">{chapter.article.title}</h3>
+                  <h3 className="font-medium text-sm text-center">{chapter.article.title || `Chapter ${index + 1}`}</h3>
                   <div className="mt-3 flex items-center text-xs text-white/70">
                     <span>Read Chapter {index + 1}</span>
                     <ExternalLink className="h-3 w-3 ml-1" />
                   </div>
-                </Link>
+                </Button>
               ))}
             </div>
             

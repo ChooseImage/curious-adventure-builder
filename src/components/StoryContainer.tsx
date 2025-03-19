@@ -33,6 +33,11 @@ const StoryContainer: React.FC<StoryContainerProps> = ({
     }
   }, [isVisible, story]);
 
+  useEffect(() => {
+    // Log storyChapters when they change
+    console.log("StoryContainer received storyChapters:", storyChapters);
+  }, [storyChapters]);
+
   // Choose the right story component based on story ID or tags
   const renderStoryContent = () => {
     if (!story) return null;

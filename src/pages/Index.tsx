@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -30,6 +31,11 @@ const Index = () => {
   const [isRetrying, setIsRetrying] = useState(false);
   const [storyChapters, setStoryChapters] = useState<any[]>([]);
   const navigate = useNavigate();
+
+  // Debug log whenever storyChapters changes
+  useEffect(() => {
+    console.log("Index component - storyChapters updated:", storyChapters);
+  }, [storyChapters]);
 
   const logStreamContent = (eventType: string, data: any) => {
     console.log(`Stream event received (${eventType}):`, data);
@@ -65,7 +71,15 @@ const Index = () => {
     });
   };
 
+  const handleStoryChaptersUpdated = (chapters: any[]) => {
+    console.log("handleStoryChaptersUpdated called with chapters:", chapters);
+    if (chapters && chapters.length > 0) {
+      setStoryChapters(chapters);
+    }
+  };
+
   const handleNavigateToStory = (chapterId: number) => {
+    console.log("Navigating to story with chapters:", storyChapters);
     navigate(`/story/${chapterId}`, { state: { chapters: storyChapters } });
   };
 
@@ -217,7 +231,7 @@ const Index = () => {
                   onClick={() => handleNavigateToStory(index + 1)}
                 >
                   <Book className="h-8 w-8 mb-2 text-primary" />
-                  <span className="text-sm font-medium">{chapter.article.title}</span>
+                  <span className="text-sm font-medium">{chapter.article.title || `Chapter ${index + 1}`}</span>
                   <span className="mt-1 text-xs text-white/70">Chapter {index + 1}</span>
                 </Button>
               ))}
@@ -428,6 +442,7 @@ const Index = () => {
       <LoadingState 
         isLoading={storyState === 'loading'} 
         streamingContent={streamingContent}
+        onStoryChaptersUpdated={handleStoryChaptersUpdated}
       />
       
       <StoryContainer 
