@@ -3,10 +3,6 @@ import { tallestBuildingsStory } from '@/utils/dummyData';
 
 // Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b4---genv-opengpts-al23s7k26q-de.a.run.app';
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-
-// Function to get full proxied URL - keeping for future reference
-const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
 
 export interface StreamRequest {
   message: string;
@@ -28,88 +24,42 @@ export const streamConversation = async (
   console.log(`Streaming conversation with message: ${message}`);
   
   try {
-    // Attempt to call the API directly
-    try {
-      const response = await fetch(`${BASE_API_URL}/headless/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API responded with status: ${response.status}`);
-      }
-      
-      // Use the native EventSource API to handle SSE properly
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('Failed to get response reader');
-      
-      // Process the stream
-      const decoder = new TextDecoder();
-      let buffer = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          // Process any remaining data in the buffer
-          processBuffer(buffer, onEvent);
-          break;
-        }
-        
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-        
-        // Process complete events in the buffer
-        const processedBuffer = processBuffer(buffer, onEvent);
-        buffer = processedBuffer;
-      }
-      
-      return { success: true };
-    } catch (apiError) {
-      console.warn('Direct API call failed, falling back to mock data:', apiError);
-      // Continue to the mock data fallback
+    const response = await fetch(`${BASE_API_URL}/headless/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
     }
     
-    // Mock streaming response for development/testing purposes
-    // This is a fallback in case the direct API call fails (CORS issues, etc.)
-    const mockStreamData = [
-      { type: "metadata", data: { run_id: `run-${Date.now()}` } },
-      { type: "data", data: [{ content: message, type: "human", id: `msg-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you today?", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed to provide", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed to provide information", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed to provide information and answer", type: "ai", id: `ai-${Date.now()}` }] },
-      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed to provide information and answer your questions.", type: "ai", id: `ai-${Date.now()}` }] },
-    ];
-
-    // Simulate streaming by sending events with a delay
-    let index = 0;
-    const streamInterval = setInterval(() => {
-      if (index >= mockStreamData.length) {
-        clearInterval(streamInterval);
-        return;
+    // Use the native Response.body to handle streaming properly
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('Failed to get response reader');
+    
+    // Process the stream
+    const decoder = new TextDecoder();
+    let buffer = '';
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        // Process any remaining data in the buffer
+        processBuffer(buffer, onEvent);
+        break;
       }
       
-      const streamEvent = mockStreamData[index];
-      onEvent(streamEvent.type, streamEvent.data);
-      index++;
-    }, 300);  // Send a new chunk every 300ms
-
-    return {
-      success: true
-    };
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
+      
+      // Process complete events in the buffer
+      buffer = processBuffer(buffer, onEvent);
+    }
+    
+    return { success: true };
   } catch (error) {
     console.error('Error in stream request:', error);
     onEvent('error', { message: error instanceof Error ? error.message : 'Unknown error' });

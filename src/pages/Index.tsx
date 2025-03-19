@@ -18,7 +18,7 @@ const Index = () => {
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
   const [streamingContent, setStreamingContent] = useState<any[]>([]);
-  const [showStreamDebug, setShowStreamDebug] = useState(true); // Set to false in production
+  const [showStreamDebug, setShowStreamDebug] = useState(false); // Set to false in production
   const navigate = useNavigate();
 
   const handleNavigateToSketch = () => {
@@ -46,7 +46,7 @@ const Index = () => {
     setStreamingContent([]);
     
     try {
-      // Start streaming response directly using the updated API endpoint
+      // Start streaming response from API
       toast.info("Starting stream...");
       await streamConversation(prompt, (eventType, data) => {
         console.log(`Stream event received: ${eventType}`, data);
@@ -69,7 +69,7 @@ const Index = () => {
         }
       });
       
-      toast.info("Generating content from dummy data...");
+      // After streaming is complete, generate the final story
       const story = await invokeConversation(prompt);
       
       console.log('Successfully loaded story:', story.title);
@@ -82,7 +82,7 @@ const Index = () => {
       console.error("Error processing prompt:", error);
       toast.error("Using fallback dummy data");
       
-      // Always use dummy data even in case of error
+      // Use dummy data as fallback
       setActiveStory({
         ...tallestBuildingsStory,
         originalPrompt: prompt,
