@@ -37,20 +37,12 @@ const Index = () => {
     
     // Add to state for UI display
     setStreamingContent(prev => {
-      // Prevent duplicate entries
-      const isDuplicate = prev.some(item => 
-        JSON.stringify(item.data) === JSON.stringify(data) && 
-        item.type === eventType
-      );
-      
-      if (isDuplicate) {
-        return prev;
-      }
-      
+      // Prevent duplicate entries by checking timestamp
+      const timestamp = new Date().toISOString();
       const newItem = { 
         type: eventType, 
         data, 
-        timestamp: new Date().toISOString() 
+        timestamp 
       };
       
       return [...prev, newItem];
@@ -87,7 +79,7 @@ const Index = () => {
       // Start streaming response from API
       toast.info("Starting stream...");
       const streamResponse = await streamConversation(prompt, (eventType, data) => {
-        // Use our new function to log the streaming content
+        // Use our logStreamContent function to log the streaming content
         logStreamContent(eventType, data);
       });
       
@@ -172,7 +164,7 @@ const Index = () => {
     <div className="min-h-screen w-full bg-background relative">
       {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
 
-      {/* Stream Debugger Component */}
+      {/* Stream Debugger Component - Now with enhanced real-time updates */}
       <StreamDebugger 
         streamingContent={streamingContent} 
         visible={showStreamDebug} 
