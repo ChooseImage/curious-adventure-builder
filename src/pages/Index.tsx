@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -32,11 +31,9 @@ const Index = () => {
   const [storyChapters, setStoryChapters] = useState<any[]>([]);
   const navigate = useNavigate();
 
-  // Debug log whenever storyChapters changes
   useEffect(() => {
     console.log("Index component - storyChapters updated:", storyChapters);
     
-    // Save chapters to localStorage whenever they're updated
     if (storyChapters.length > 0) {
       console.log("Saving story chapters to localStorage:", storyChapters);
       localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
@@ -81,14 +78,12 @@ const Index = () => {
     console.log("handleStoryChaptersUpdated called with chapters:", chapters);
     if (chapters && chapters.length > 0) {
       setStoryChapters(chapters);
-      // Save to localStorage immediately when chapters are updated
       localStorage.setItem('storyChapters', JSON.stringify(chapters));
     }
   };
 
   const handleNavigateToStory = (chapterId: number) => {
     console.log("Navigating to story with chapters:", storyChapters);
-    // Ensure chapters are in localStorage before navigation
     if (storyChapters.length > 0) {
       localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
     }
@@ -439,14 +434,6 @@ const Index = () => {
                 <li>"Tell me about the solar system"</li>
               </ul>
             </div>
-            
-            <Button 
-              onClick={handleNavigateToSketch}
-              className="mt-4 bg-primary hover:bg-primary/80 text-white font-semibold px-6 py-2 shadow-lg z-50 relative"
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Explore Three.js Visualization
-            </Button>
           </div>
         </div>
       )}

@@ -39,10 +39,17 @@ const LoadingState: React.FC<LoadingStateProps> = ({
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const animationRef = useRef<number | null>(null);
   const objectsRef = useRef<THREE.Object3D[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<StreamMessage[]>([]);
   const [storyChapters, setStoryChapters] = useState<StoryChapter[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (storyChapters.length > 0) {
@@ -294,6 +301,25 @@ const LoadingState: React.FC<LoadingStateProps> = ({
         ref={containerRef} 
         className="w-full h-full"
       />
+      
+      {messages.length > 0 && (
+        <div className="absolute top-0 left-0 bottom-0 w-80 z-50 pt-6 px-4">
+          <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg h-full w-full">
+            <div className="text-lg font-semibold text-white mb-2">Creating your storybook...</div>
+            <ScrollArea className="h-[calc(100%-2rem)] w-full pr-2">
+              <div className="space-y-6 text-left font-mono text-xs text-white/90 pb-2">
+                {messages.map((message) => (
+                  <div key={message.id}>
+                    <div className="whitespace-pre-wrap">{message.content}</div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+      )}
+      
       <div className="absolute bottom-20 left-0 right-0 text-center space-y-4 px-4">
         {isCompleted && storyChapters.length > 0 ? (
           <div className="bg-black/80 backdrop-blur-md p-6 rounded-lg max-w-2xl mx-auto">
@@ -322,28 +348,14 @@ const LoadingState: React.FC<LoadingStateProps> = ({
             </div>
           </div>
         ) : (
-          <>
+          <div className="text-center">
             <div className="text-2xl font-light tracking-tight text-primary animate-pulse-soft">
               Creating your storybook...
             </div>
             <div className="text-sm text-muted-foreground max-w-xs mx-auto mb-4">
               Crafting an interactive experience just for you
             </div>
-            
-            {messages.length > 0 && (
-              <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg max-w-lg mx-auto">
-                <ScrollArea className="h-32 w-full">
-                  <div className="space-y-2 text-left font-mono text-xs text-white/90">
-                    {messages.map((message) => (
-                      <div key={message.id} className="pb-2">
-                        <div className="whitespace-pre-wrap">{message.content}</div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
     </div>
