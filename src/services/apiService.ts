@@ -1,4 +1,3 @@
-
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
@@ -381,7 +380,7 @@ const processBuffer = (buffer: string, onEvent: (eventType: string, data: any) =
 
 /**
  * Invokes a conversation with a prompt
- * Attempts to use real API if not in LOCAL_MODE
+ * Now just uses streamConversation and returns a generated story from the stream data
  */
 export const invokeConversation = async (prompt: string): Promise<Story> => {
   console.log(`Invoking conversation with prompt: ${prompt}`);
@@ -402,168 +401,107 @@ export const invokeConversation = async (prompt: string): Promise<Story> => {
     return dummyStory;
   }
   
-  // If not in LOCAL_MODE or fallback is disabled, try to use the real API
-  try {
-    if (API_CONFIG.USE_EVENT_SOURCE) {
-      // Use fetchEventSource for complete requests as well
-      return new Promise((resolve, reject) => {
-        let responseData = '';
-        
-        fetchEventSource(`${BASE_API_URL}/headless/complete`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Origin': window.location.origin,
-          },
-          body: JSON.stringify({ message: prompt }),
-          
-          onmessage(msg) {
-            responseData += msg.data;
-          },
-          
-          onclose() {
-            try {
-              let data;
-              try {
-                data = JSON.parse(responseData);
-              } catch (e) {
-                data = { text: responseData };
-              }
-              
-              console.log("API response for invokeConversation:", data);
-              
-              // Use the dummy data but merge in the API response data
-              const responseStory = {
-                ...tallestBuildingsStory,
-                originalPrompt: prompt,
-                metadata: {
-                  ...tallestBuildingsStory.metadata,
-                  apiResponse: data
-                }
-              };
-              
-              resolve(responseStory);
-            } catch (error) {
-              if (API_CONFIG.FALLBACK_TO_DUMMY) {
-                resolve({
-                  ...tallestBuildingsStory,
-                  originalPrompt: prompt,
-                  metadata: {
-                    ...tallestBuildingsStory.metadata,
-                    error: error instanceof Error ? error.message : "Unknown error"
-                  }
-                });
-              } else {
-                reject(error);
-              }
-            }
-          },
-          
-          onerror(error) {
-            console.error('Error in invokeConversation:', error);
-            
-            if (API_CONFIG.FALLBACK_TO_DUMMY) {
-              resolve({
-                ...tallestBuildingsStory,
-                originalPrompt: prompt,
-                metadata: {
-                  ...tallestBuildingsStory.metadata,
-                  error: error instanceof Error ? error.message : "Unknown error"
-                }
-              });
-            } else {
-              reject(error);
-            }
-            return;
+  // Use streamConversation and collect the responses
+  return new Promise((resolve, reject) => {
+    let streamData: any[] = [];
+    let hasError = false;
+    let errorMessage = '';
+    
+    streamConversation(prompt, (eventType, data) => {
+      if (eventType === 'data') {
+        streamData.push(data);
+      } else if (eventType === 'error') {
+        hasError = true;
+        errorMessage = data.message || 'Unknown error';
+      }
+    }).then(response => {
+      if (hasError && API_CONFIG.FALLBACK_TO_DUMMY) {
+        // If there was an error and fallback is enabled, use fallback data
+        console.warn(`Error occurred during streaming: ${errorMessage}. Using fallback data.`);
+        resolve({
+          ...tallestBuildingsStory,
+          originalPrompt: prompt,
+          metadata: {
+            ...tallestBuildingsStory.metadata,
+            error: errorMessage
           }
         });
-      });
-    } else {
-      // Non-EventSource implementation
-      const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Origin': window.location.origin,
-        },
-        mode: 'cors' as RequestMode,
-        credentials: 'omit' as RequestCredentials,
-        body: JSON.stringify({ message: prompt }),
-      };
-      
-      let response = null;
-      
-      // First try direct access
-      try {
-        console.log("Attempting direct API call for invokeConversation");
-        response = await fetch(`${BASE_API_URL}/headless/complete`, options);
-        if (!response.ok) {
-          console.warn(`Direct API call failed with status: ${response.status}`);
-          response = null;
+      } else if (streamData.length > 0) {
+        // Combine all stream data to create a story
+        let combinedData = streamData.reduce((result, item) => {
+          if (item.content) {
+            // Attempt to extract what might be chapter data
+            if (typeof item.content === 'string' && item.content.includes('Chapter')) {
+              result.chapters = result.chapters || [];
+              // Extract chapter data - this is a simplistic approach
+              const chapterLines = item.content.split('\n');
+              for (const line of chapterLines) {
+                if (line.trim().startsWith('Chapter')) {
+                  const chapter = {
+                    title: line.trim(),
+                    content: ''
+                  };
+                  result.chapters.push(chapter);
+                } else if (result.chapters.length > 0 && line.trim()) {
+                  // Add content to the last chapter
+                  result.chapters[result.chapters.length - 1].content += line + '\n';
+                }
+              }
+            }
+            
+            // Add any other content
+            if (typeof item.content === 'object') {
+              return { ...result, ...item.content };
+            }
+          }
+          return result;
+        }, {});
+        
+        // If we didn't extract chapters but have text content, create a basic structure
+        if (!combinedData.chapters && streamData.some(item => item.content)) {
+          const textContent = streamData
+            .filter(item => item.content)
+            .map(item => typeof item.content === 'string' ? item.content : JSON.stringify(item.content))
+            .join('\n');
+          
+          combinedData = {
+            text: textContent
+          };
         }
-      } catch (directError) {
-        console.warn(`Direct API access failed: ${directError}`);
-      }
-      
-      // If direct access fails and CORS proxies are enabled, try them
-      if (!response && API_CONFIG.USE_CORS_PROXIES) {
-        console.log("Direct API call failed, trying CORS proxies for invokeConversation");
-        response = await tryMultipleCorsProxies(`${BASE_API_URL}/headless/complete`, options);
-      }
-      
-      // If we got a response, process it
-      if (response) {
-        const data = await response.json();
-        console.log("API response for invokeConversation:", data);
         
-        // Use the dummy data but merge in the API response data
-        const responseStory = {
-          ...tallestBuildingsStory,
-          originalPrompt: prompt,
-          metadata: {
-            ...tallestBuildingsStory.metadata,
-            apiResponse: data
-          }
-        };
-        
-        return responseStory;
-      }
-      
-      // If all API attempts fail and FALLBACK_TO_DUMMY is enabled, use fallback data
-      if (API_CONFIG.FALLBACK_TO_DUMMY) {
-        console.warn("All API access methods failed for invokeConversation, using fallback data");
-        return {
-          ...tallestBuildingsStory,
-          originalPrompt: prompt,
-          metadata: {
-            ...tallestBuildingsStory.metadata,
-          }
-        };
+        // Generate a story from the combined data
+        const story = parseStoryFromResponse(combinedData, prompt, Date.now().toString());
+        resolve(story);
       } else {
-        // If fallback is disabled, throw an error
-        throw new Error("All API access methods failed and fallback is disabled");
+        // If we didn't get any stream data, use fallback
+        console.warn('No stream data received. Using fallback data.');
+        resolve({
+          ...tallestBuildingsStory,
+          originalPrompt: prompt,
+          metadata: {
+            ...tallestBuildingsStory.metadata,
+          }
+        });
       }
-    }
-  } catch (error) {
-    console.error("Error in invokeConversation:", error);
-    
-    if (API_CONFIG.FALLBACK_TO_DUMMY) {
-      // Use fallback data if enabled
-      return {
-        ...tallestBuildingsStory,
-        originalPrompt: prompt,
-        metadata: {
-          ...tallestBuildingsStory.metadata,
-          error: error instanceof Error ? error.message : "Unknown error"
-        }
-      };
-    } else {
-      // Rethrow the error if fallback is disabled
-      throw error;
-    }
-  }
+    }).catch(error => {
+      console.error('Error in invokeConversation:', error);
+      
+      if (API_CONFIG.FALLBACK_TO_DUMMY) {
+        // Use fallback data if enabled
+        resolve({
+          ...tallestBuildingsStory,
+          originalPrompt: prompt,
+          metadata: {
+            ...tallestBuildingsStory.metadata,
+            error: error instanceof Error ? error.message : "Unknown error"
+          }
+        });
+      } else {
+        // Reject the promise if fallback is disabled
+        reject(error);
+      }
+    });
+  });
 };
 
 /**
