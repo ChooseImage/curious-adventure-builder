@@ -8,9 +8,10 @@ import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
 import { streamConversation, invokeConversation } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ExternalLink } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BuildingsVisualization from "@/components/BuildingsVisualization";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
   const [storyState, setStoryState] = useState<StoryState>('idle');
@@ -19,6 +20,7 @@ const Index = () => {
   const [streamingContent, setStreamingContent] = useState<any[]>([]);
   const [showStreamDebug, setShowStreamDebug] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   const navigate = useNavigate();
 
   const handleNavigateToSketch = () => {
@@ -43,6 +45,7 @@ const Index = () => {
   const handlePromptSubmit = async (prompt: string) => {
     setStoryState('loading');
     setApiError(null);
+    setIsRetrying(false);
     toast.info("Generating your story...");
     setStreamingContent([]);
     
@@ -109,12 +112,31 @@ const Index = () => {
     }
   };
 
+  const handleRetry = async () => {
+    if (!activeStory?.originalPrompt) return;
+    
+    setIsRetrying(true);
+    setApiError(null);
+    toast.info("Retrying with different proxy...");
+    
+    try {
+      await handlePromptSubmit(activeStory.originalPrompt);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   const handleReset = () => {
     setStoryState('idle');
     setActiveStory(null);
     setHasValidThreeJsContent(false);
     setStreamingContent([]);
     setApiError(null);
+    setIsRetrying(false);
+  };
+
+  const toggleStreamDebug = () => {
+    setShowStreamDebug(prev => !prev);
   };
 
   const getYoutubeId = (url: string) => {
@@ -127,10 +149,6 @@ const Index = () => {
 
   const videoUrl = "https://static-gstudio.gliacloud.com/10903/files/a86e423ead118924eba4577a3505f818aff8c413.mp4";
 
-  const toggleStreamDebug = () => {
-    setShowStreamDebug(prev => !prev);
-  };
-
   return (
     <div className="min-h-screen w-full bg-background relative">
       {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
@@ -141,6 +159,27 @@ const Index = () => {
           <div className="flex-1">
             <p className="font-medium">API Error</p>
             <p className="text-sm">{apiError}</p>
+            {apiError.includes("CORS") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetry}
+                disabled={isRetrying}
+                className="mt-2 bg-white/20 hover:bg-white/40 border-white/30"
+              >
+                {isRetrying ? (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
+                    Retrying...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-2" />
+                    Try Different Proxy
+                  </>
+                )}
+              </Button>
+            )}
           </div>
           <button 
             onClick={() => setApiError(null)} 
@@ -151,7 +190,7 @@ const Index = () => {
         </div>
       )}
 
-      <div className="fixed bottom-24 right-4 z-50">
+      <div className="fixed bottom-24 right-4 z-50 flex flex-col space-y-2">
         <Button 
           variant="outline" 
           size="sm" 
@@ -176,16 +215,20 @@ const Index = () => {
             </Button>
           </div>
           <div className="overflow-y-auto max-h-[450px]">
-            {streamingContent.map((item, index) => (
-              <div key={index} className="mb-2 pb-2 border-b border-white/20">
-                <div className="text-xs text-green-400 mb-1">
-                  {item.type} ({new Date(item.timestamp).toLocaleTimeString()}):
+            {streamingContent.length === 0 ? (
+              <div className="text-gray-400 italic">No stream data received yet</div>
+            ) : (
+              streamingContent.map((item, index) => (
+                <div key={index} className="mb-2 pb-2 border-b border-white/20">
+                  <div className="text-xs text-green-400 mb-1">
+                    {item.type} ({new Date(item.timestamp).toLocaleTimeString()}):
+                  </div>
+                  <pre className="whitespace-pre-wrap text-xs overflow-hidden text-ellipsis">
+                    {JSON.stringify(item.data, null, 2)}
+                  </pre>
                 </div>
-                <pre className="whitespace-pre-wrap text-xs overflow-hidden text-ellipsis">
-                  {JSON.stringify(item.data, null, 2)}
-                </pre>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}

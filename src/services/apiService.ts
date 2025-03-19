@@ -1,11 +1,15 @@
-
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
 // Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b4---genv-opengpts-al23s7k26q-de.a.run.app';
-// Use a CORS proxy to bypass CORS restrictions
-const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+
+// List of CORS proxies to try in order
+const CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://cors-anywhere.herokuapp.com/',
+  'https://api.allorigins.win/raw?url='
+];
 
 export interface StreamRequest {
   message: string;
@@ -17,28 +21,32 @@ export interface StreamResponse {
 }
 
 /**
- * Helper function to attempt different methods of accessing the API
- * to work around CORS issues
+ * Try multiple CORS proxies until one works
  */
-const fetchWithCorsHandling = async (url: string, options: RequestInit): Promise<Response> => {
-  // Try direct approach first
-  try {
-    console.log("Attempting direct API call to:", url);
-    const response = await fetch(url, options);
-    if (response.ok) return response;
-  } catch (error) {
-    console.warn("Direct API call failed:", error);
+const tryMultipleCorsProxies = async (url: string, options: RequestInit): Promise<Response | null> => {
+  for (const proxy of CORS_PROXIES) {
+    try {
+      console.log(`Attempting with CORS proxy: ${proxy}`);
+      const proxyUrl = `${proxy}${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl, {
+        ...options,
+        // Some proxies need different headers
+        headers: {
+          ...options.headers,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      if (response.ok) {
+        console.log(`Success with proxy: ${proxy}`);
+        return response;
+      }
+    } catch (error) {
+      console.warn(`Failed with proxy ${proxy}:`, error);
+    }
   }
-
-  // Try with CORS proxy
-  try {
-    console.log("Attempting API call via CORS proxy");
-    const proxyUrl = `${CORS_PROXY}${url}`;
-    return await fetch(proxyUrl, options);
-  } catch (error) {
-    console.error("CORS proxy attempt failed:", error);
-    throw new Error("All API access methods failed");
-  }
+  
+  return null;
 };
 
 /**
@@ -46,7 +54,7 @@ const fetchWithCorsHandling = async (url: string, options: RequestInit): Promise
  * Attempts to get the data through a simpler request
  */
 const getFallbackResponse = async (message: string): Promise<any> => {
-  console.log("Using fallback method to get response");
+  console.log("Using fallback dummy data");
   // Return the dummy building story as a fallback
   return tallestBuildingsStory;
 };
@@ -62,7 +70,7 @@ export const streamConversation = async (
   console.log(`Streaming conversation with message: ${message}`);
   
   try {
-    // First try the standard fetch with CORS handling
+    // Set up request options with all possible CORS headers
     const options = {
       method: 'POST',
       headers: {
@@ -75,14 +83,36 @@ export const streamConversation = async (
       body: JSON.stringify({ message }),
     };
     
-    let response;
+    // First try direct access
+    let response = null;
+    let errorMessage = '';
+    
     try {
-      response = await fetchWithCorsHandling(`${BASE_API_URL}/headless/stream`, options);
-    } catch (error) {
-      console.error("All CORS approaches failed, using fallback data", error);
-      onEvent('error', { message: "CORS error: Unable to access the API. Using fallback data." });
+      console.log("Attempting direct API call");
+      response = await fetch(`${BASE_API_URL}/headless/stream`, options);
+      if (!response.ok) {
+        errorMessage = `Direct API call failed with status: ${response.status}`;
+        console.warn(errorMessage);
+        response = null;
+      }
+    } catch (directError) {
+      errorMessage = directError instanceof Error ? directError.message : 'Unknown error in direct API call';
+      console.warn(`Direct API access failed: ${errorMessage}`);
+    }
+    
+    // If direct access fails, try CORS proxies
+    if (!response) {
+      console.log("Direct API call failed, trying CORS proxies");
+      response = await tryMultipleCorsProxies(`${BASE_API_URL}/headless/stream`, options);
+    }
+    
+    // If all attempts fail, use fallback data
+    if (!response) {
+      console.error("All API access methods failed, using fallback data");
+      onEvent('error', { 
+        message: "CORS error: Unable to access the API due to cross-origin restrictions. Using fallback data." 
+      });
       
-      // Use fallback data, but inform the caller about the issue
       const fallbackData = await getFallbackResponse(message);
       onEvent('data', { content: fallbackData });
       
@@ -90,12 +120,6 @@ export const streamConversation = async (
         success: false,
         error: "CORS restrictions prevented API access. Using fallback data instead."
       };
-    }
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API error (${response.status}): ${errorText}`);
-      throw new Error(`API responded with status: ${response.status} - ${errorText}`);
     }
     
     // Use the native Response.body to handle streaming properly
@@ -150,7 +174,7 @@ export const streamConversation = async (
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: errorMessage
     };
   }
 };
@@ -159,8 +183,8 @@ export const streamConversation = async (
  * Helper function to process the SSE buffer
  */
 const processBuffer = (buffer: string, onEvent: (eventType: string, data: any) => void): string => {
-  // Process event stream format (lines separated by \n\n)
-  const events = buffer.split('\n\n');
+  // Process various SSE formats
+  const events = buffer.split(/\n\n|\r\n\r\n/);
   
   // Keep the last incomplete event in the buffer
   const lastEvent = events.pop() || '';
@@ -169,7 +193,8 @@ const processBuffer = (buffer: string, onEvent: (eventType: string, data: any) =
     if (event.trim() === '') continue;
     
     try {
-      // Parse the SSE format: "event: type\ndata: {...}"
+      // Try different formats of SSE
+      // Format 1: "event: type\ndata: {...}"
       const eventMatch = event.match(/^event:\s*(.+)$/m);
       const dataMatch = event.match(/^data:\s*(.+)$/m);
       
@@ -179,20 +204,33 @@ const processBuffer = (buffer: string, onEvent: (eventType: string, data: any) =
           const eventData = JSON.parse(dataMatch[1].trim());
           onEvent(eventType, eventData);
         } catch (e) {
-          console.error('Error parsing event data:', e, dataMatch[1]);
-          onEvent('error', { message: 'Error parsing event data', rawData: dataMatch[1] });
+          console.log('Non-JSON data received:', dataMatch[1]);
+          onEvent('data', { text: dataMatch[1].trim() });
         }
-      } else if (dataMatch) {
-        // Some SSE implementations don't use the event field
+      } 
+      // Format 2: Just "data: {...}"
+      else if (dataMatch) {
         try {
           const eventData = JSON.parse(dataMatch[1].trim());
           onEvent('data', eventData);
         } catch (e) {
-          console.error('Error parsing data:', e, dataMatch[1]);
-          onEvent('error', { message: 'Error parsing data', rawData: dataMatch[1] });
+          console.log('Non-JSON data received:', dataMatch[1]);
+          onEvent('data', { text: dataMatch[1].trim() });
         }
-      } else {
-        console.warn('Malformed SSE event:', event);
+      }
+      // Format 3: Just a JSON string without data: prefix
+      else if (event.trim().startsWith('{')) {
+        try {
+          const eventData = JSON.parse(event.trim());
+          onEvent('data', eventData);
+        } catch (e) {
+          console.error('Error parsing JSON:', e, event);
+        }
+      }
+      // Format 4: Plain text
+      else {
+        console.log('Plain text message:', event);
+        onEvent('data', { text: event.trim() });
       }
     } catch (error) {
       console.error('Error processing event:', error, event);
