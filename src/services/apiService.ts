@@ -10,7 +10,10 @@ const CORS_PROXIES = [
   'https://proxy.cors.sh/',
   'https://cors.eu.org/',
   'https://corsproxy.io/?',
-  'https://cors-anywhere.herokuapp.com/'
+  'https://cors-anywhere.herokuapp.com/',
+  'https://corsproxy.org/?',
+  'https://cors-proxy.fringe.zone/',
+  'https://crossorigin.me/'
 ];
 
 // Configuration for API behavior
@@ -63,6 +66,48 @@ const tryMultipleCorsProxies = async (url: string, options: RequestInit): Promis
 };
 
 /**
+ * Make a direct API call with CORS handling
+ * Attempts to use various CORS workarounds if direct call fails
+ */
+const makeApiCall = async (endpoint: string, options: RequestInit): Promise<Response | null> => {
+  const url = `${BASE_API_URL}${endpoint}`;
+  let response = null;
+  
+  // First try with mode: 'no-cors' as a last resort for the direct call
+  try {
+    console.log("Attempting direct API call with standard CORS");
+    response = await fetch(url, options);
+    if (response.ok) {
+      console.log("Direct API call succeeded");
+      return response;
+    }
+  } catch (error) {
+    console.warn("Standard direct API call failed:", error);
+  }
+  
+  // Try with no-cors mode (this will limit what we can do with the response but might work)
+  try {
+    console.log("Attempting direct API call with no-cors mode");
+    const noCorsOptions = {
+      ...options,
+      mode: 'no-cors' as RequestMode
+    };
+    response = await fetch(url, noCorsOptions);
+    
+    // Note: with no-cors, we can't actually check response.ok
+    // so we just return it and let the caller handle it
+    console.log("no-cors request completed");
+    return response;
+  } catch (error) {
+    console.warn("no-cors direct API call failed:", error);
+  }
+  
+  // If direct access fails, try CORS proxies
+  console.log("Direct API calls failed, trying CORS proxies");
+  return await tryMultipleCorsProxies(url, options);
+};
+
+/**
  * Uses a fallback method if streaming fails
  * Immediately returns dummy data in local mode if configured
  */
@@ -107,31 +152,11 @@ export const streamConversation = async (
       body: JSON.stringify({ message }),
     };
     
-    // First try direct access
-    let response = null;
-    let errorMessage = '';
-    
-    try {
-      console.log("Attempting direct API call");
-      response = await fetch(`${BASE_API_URL}/headless/stream`, options);
-      if (!response.ok) {
-        errorMessage = `Direct API call failed with status: ${response.status}`;
-        console.warn(errorMessage);
-        response = null;
-      }
-    } catch (directError) {
-      errorMessage = directError instanceof Error ? directError.message : 'Unknown error in direct API call';
-      console.warn(`Direct API access failed: ${errorMessage}`);
-    }
-    
-    // If direct access fails and CORS proxies are enabled, try them
-    if (!response && API_CONFIG.USE_CORS_PROXIES) {
-      console.log("Direct API call failed, trying CORS proxies");
-      response = await tryMultipleCorsProxies(`${BASE_API_URL}/headless/stream`, options);
-    }
+    // Try to make the API call with our enhanced function
+    const response = await makeApiCall('/headless/stream', options);
     
     // If all attempts fail and FALLBACK_TO_DUMMY is enabled, use fallback data
-    if (!response) {
+    if (!response || !response.ok) {
       console.error("All API access methods failed");
       
       if (API_CONFIG.FALLBACK_TO_DUMMY) {
@@ -158,6 +183,24 @@ export const streamConversation = async (
           error: "All API access methods failed and fallback is disabled."
         };
       }
+    }
+    
+    // Handle no-cors responses (which are opaque and can't be properly read)
+    if (response.type === 'opaque') {
+      console.log("Received opaque response (no-cors mode), cannot read content");
+      onEvent('error', {
+        message: "Received opaque response from API due to CORS. Cannot read the actual content."
+      });
+      
+      if (API_CONFIG.FALLBACK_TO_DUMMY) {
+        const fallbackData = await getFallbackResponse(message);
+        onEvent('data', { content: fallbackData });
+      }
+      
+      return {
+        success: false,
+        error: "Received opaque response from API due to CORS."
+      };
     }
     
     // Use the native Response.body to handle streaming properly
@@ -317,28 +360,11 @@ export const invokeConversation = async (prompt: string): Promise<Story> => {
       body: JSON.stringify({ message: prompt }),
     };
     
-    let response = null;
-    
-    // First try direct access
-    try {
-      console.log("Attempting direct API call for invokeConversation");
-      response = await fetch(`${BASE_API_URL}/headless/complete`, options);
-      if (!response.ok) {
-        console.warn(`Direct API call failed with status: ${response.status}`);
-        response = null;
-      }
-    } catch (directError) {
-      console.warn(`Direct API access failed: ${directError}`);
-    }
-    
-    // If direct access fails and CORS proxies are enabled, try them
-    if (!response && API_CONFIG.USE_CORS_PROXIES) {
-      console.log("Direct API call failed, trying CORS proxies for invokeConversation");
-      response = await tryMultipleCorsProxies(`${BASE_API_URL}/headless/complete`, options);
-    }
+    // Try to make the API call with our enhanced function
+    const response = await makeApiCall('/headless/complete', options);
     
     // If we got a response, process it
-    if (response) {
+    if (response && response.ok) {
       const data = await response.json();
       console.log("API response for invokeConversation:", data);
       
@@ -353,6 +379,22 @@ export const invokeConversation = async (prompt: string): Promise<Story> => {
       };
       
       return responseStory;
+    }
+    
+    // If response is opaque (no-cors mode), we can't read it
+    if (response && response.type === 'opaque') {
+      console.log("Received opaque response from invokeConversation (no-cors mode)");
+      // Fall back to dummy data
+      if (API_CONFIG.FALLBACK_TO_DUMMY) {
+        return {
+          ...tallestBuildingsStory,
+          originalPrompt: prompt,
+          metadata: {
+            ...tallestBuildingsStory.metadata,
+            error: "Received opaque response due to CORS restrictions"
+          }
+        };
+      }
     }
     
     // If all API attempts fail and FALLBACK_TO_DUMMY is enabled, use fallback data
