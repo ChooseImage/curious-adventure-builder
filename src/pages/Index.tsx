@@ -9,10 +9,17 @@ import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
 import { streamConversation, invokeConversation } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ExternalLink, RefreshCw, Code } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCw, Code, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BuildingsVisualization from "@/components/BuildingsVisualization";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+
+// Import the API_CONFIG for displaying status
+const API_CONFIG = {
+  LOCAL_MODE: false,
+  FALLBACK_TO_DUMMY: true,
+  USE_CORS_PROXIES: true
+};
 
 const Index = () => {
   const [storyState, setStoryState] = useState<StoryState>('idle');
@@ -227,9 +234,11 @@ const Index = () => {
               Hide
             </Button>
           </div>
-          <div className="mb-3 p-2 bg-yellow-500/20 rounded text-yellow-200 text-xs">
-            <p><strong>LOCAL_MODE</strong> is enabled in apiService.ts</p>
-            <p>API calls are bypassed, using dummy data</p>
+          <div className="mb-3 p-2 bg-blue-500/20 rounded text-blue-200 text-xs">
+            <p><strong>API Configuration:</strong></p>
+            <p>LOCAL_MODE: {API_CONFIG.LOCAL_MODE ? 'Enabled' : 'Disabled'}</p>
+            <p>FALLBACK_TO_DUMMY: {API_CONFIG.FALLBACK_TO_DUMMY ? 'Enabled' : 'Disabled'}</p>
+            <p>USE_CORS_PROXIES: {API_CONFIG.USE_CORS_PROXIES ? 'Enabled' : 'Disabled'}</p>
           </div>
           <div className="overflow-y-auto max-h-[450px]">
             {streamingContent.length === 0 ? (

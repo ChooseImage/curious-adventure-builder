@@ -1,4 +1,3 @@
-
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
@@ -9,11 +8,17 @@ const BASE_API_URL = 'https://v0-0-43b4---genv-opengpts-al23s7k26q-de.a.run.app'
 const CORS_PROXIES = [
   'https://api.allorigins.win/raw?url=',
   'https://proxy.cors.sh/',
-  'https://cors.eu.org/'
+  'https://cors.eu.org/',
+  'https://corsproxy.io/?',
+  'https://cors-anywhere.herokuapp.com/'
 ];
 
-// For testing and development only
-const LOCAL_MODE = true; // Set to true to bypass API calls completely
+// Configuration for API behavior
+const API_CONFIG = {
+  LOCAL_MODE: false, // Set to false to enable real API calls
+  FALLBACK_TO_DUMMY: true, // Whether to fall back to dummy data if API fails
+  USE_CORS_PROXIES: true // Whether to try CORS proxies
+};
 
 export interface StreamRequest {
   message: string;
@@ -28,6 +33,10 @@ export interface StreamResponse {
  * Try multiple CORS proxies until one works
  */
 const tryMultipleCorsProxies = async (url: string, options: RequestInit): Promise<Response | null> => {
+  if (!API_CONFIG.USE_CORS_PROXIES) {
+    return null;
+  }
+  
   for (const proxy of CORS_PROXIES) {
     try {
       console.log(`Attempting with CORS proxy: ${proxy}`);
@@ -55,7 +64,7 @@ const tryMultipleCorsProxies = async (url: string, options: RequestInit): Promis
 
 /**
  * Uses a fallback method if streaming fails
- * Immediately returns dummy data in local mode
+ * Immediately returns dummy data in local mode if configured
  */
 const getFallbackResponse = async (message: string): Promise<any> => {
   console.log("Using fallback dummy data for prompt:", message);
@@ -65,7 +74,7 @@ const getFallbackResponse = async (message: string): Promise<any> => {
 
 /**
  * Streams a conversation with a prompt
- * Uses the headless/stream endpoint or falls back to dummy data
+ * Tries direct API, CORS proxies, then fallback data if necessary
  */
 export const streamConversation = async (
   message: string,
@@ -73,13 +82,15 @@ export const streamConversation = async (
 ): Promise<StreamResponse> => {
   console.log(`Streaming conversation with message: ${message}`);
   
-  // In local mode, immediately return dummy data
-  if (LOCAL_MODE) {
-    console.log("🔥 LOCAL MODE: Bypassing API call and returning dummy data");
-    onEvent('data', { content: tallestBuildingsStory });
-    return {
-      success: true
-    };
+  // If in LOCAL_MODE and FALLBACK_TO_DUMMY is enabled, use dummy data
+  if (API_CONFIG.LOCAL_MODE && API_CONFIG.FALLBACK_TO_DUMMY) {
+    console.log("🔥 LOCAL MODE: Using dummy data but will still try API call if FALLBACK_TO_DUMMY is disabled");
+    if (API_CONFIG.FALLBACK_TO_DUMMY) {
+      onEvent('data', { content: tallestBuildingsStory });
+      return {
+        success: true
+      };
+    }
   }
   
   try {
@@ -113,26 +124,40 @@ export const streamConversation = async (
       console.warn(`Direct API access failed: ${errorMessage}`);
     }
     
-    // If direct access fails, try CORS proxies
-    if (!response) {
+    // If direct access fails and CORS proxies are enabled, try them
+    if (!response && API_CONFIG.USE_CORS_PROXIES) {
       console.log("Direct API call failed, trying CORS proxies");
       response = await tryMultipleCorsProxies(`${BASE_API_URL}/headless/stream`, options);
     }
     
-    // If all attempts fail, use fallback data
+    // If all attempts fail and FALLBACK_TO_DUMMY is enabled, use fallback data
     if (!response) {
-      console.error("All API access methods failed, using fallback data");
-      onEvent('error', { 
-        message: "CORS error: Unable to access the API due to cross-origin restrictions. Using fallback data." 
-      });
+      console.error("All API access methods failed");
       
-      const fallbackData = await getFallbackResponse(message);
-      onEvent('data', { content: fallbackData });
-      
-      return {
-        success: false,
-        error: "CORS restrictions prevented API access. Using fallback data instead."
-      };
+      if (API_CONFIG.FALLBACK_TO_DUMMY) {
+        console.log("Using fallback data");
+        onEvent('error', { 
+          message: "CORS error: Unable to access the API due to cross-origin restrictions. Using fallback data." 
+        });
+        
+        const fallbackData = await getFallbackResponse(message);
+        onEvent('data', { content: fallbackData });
+        
+        return {
+          success: false,
+          error: "CORS restrictions prevented API access. Using fallback data instead."
+        };
+      } else {
+        // If fallback is disabled, report the error
+        onEvent('error', { 
+          message: "API access failed and fallback data is disabled. Please check network settings."
+        });
+        
+        return {
+          success: false,
+          error: "All API access methods failed and fallback is disabled."
+        };
+      }
     }
     
     // Use the native Response.body to handle streaming properly
@@ -170,18 +195,20 @@ export const streamConversation = async (
       errorMessage.includes('Cross-Origin') ||
       errorMessage.includes('Failed to fetch');
     
-    // Use fallback data for all errors
-    try {
-      const fallbackData = await getFallbackResponse(message);
-      onEvent('data', { content: fallbackData });
-    } catch (fallbackError) {
-      console.error('Even fallback failed:', fallbackError);
+    // Use fallback data for all errors if FALLBACK_TO_DUMMY is enabled
+    if (API_CONFIG.FALLBACK_TO_DUMMY) {
+      try {
+        const fallbackData = await getFallbackResponse(message);
+        onEvent('data', { content: fallbackData });
+      } catch (fallbackError) {
+        console.error('Even fallback failed:', fallbackError);
+      }
     }
     
     if (isCorsError) {
       return {
         success: false,
-        error: "CORS error: The API server doesn't allow requests from this origin. Using fallback data instead."
+        error: "CORS error: The API server doesn't allow requests from this origin."
       };
     }
     
@@ -255,22 +282,111 @@ const processBuffer = (buffer: string, onEvent: (eventType: string, data: any) =
 
 /**
  * Invokes a conversation with a prompt
- * Always returns dummy data without making API calls
+ * Attempts to use real API if not in LOCAL_MODE
  */
 export const invokeConversation = async (prompt: string): Promise<Story> => {
-  console.log(`Using dummy data for prompt: ${prompt}`);
+  console.log(`Invoking conversation with prompt: ${prompt}`);
   
-  // Return the dummy building story with the original prompt
-  const dummyStory = {
-    ...tallestBuildingsStory,
-    originalPrompt: prompt,
-    metadata: {
-      ...tallestBuildingsStory.metadata,
-      // No thread_id needed since we're no longer using threads
+  // In local mode with fallback enabled, immediately return dummy data
+  if (API_CONFIG.LOCAL_MODE && API_CONFIG.FALLBACK_TO_DUMMY) {
+    console.log("🔥 LOCAL MODE: Using dummy data for invokeConversation");
+    
+    // Return the dummy building story with the original prompt
+    const dummyStory = {
+      ...tallestBuildingsStory,
+      originalPrompt: prompt,
+      metadata: {
+        ...tallestBuildingsStory.metadata,
+      }
+    };
+    
+    return dummyStory;
+  }
+  
+  // If not in LOCAL_MODE or fallback is disabled, try to use the real API
+  try {
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Origin': window.location.origin,
+      },
+      mode: 'cors' as RequestMode,
+      credentials: 'omit' as RequestCredentials,
+      body: JSON.stringify({ message: prompt }),
+    };
+    
+    let response = null;
+    
+    // First try direct access
+    try {
+      console.log("Attempting direct API call for invokeConversation");
+      response = await fetch(`${BASE_API_URL}/headless/complete`, options);
+      if (!response.ok) {
+        console.warn(`Direct API call failed with status: ${response.status}`);
+        response = null;
+      }
+    } catch (directError) {
+      console.warn(`Direct API access failed: ${directError}`);
     }
-  };
-  
-  return dummyStory;
+    
+    // If direct access fails and CORS proxies are enabled, try them
+    if (!response && API_CONFIG.USE_CORS_PROXIES) {
+      console.log("Direct API call failed, trying CORS proxies for invokeConversation");
+      response = await tryMultipleCorsProxies(`${BASE_API_URL}/headless/complete`, options);
+    }
+    
+    // If we got a response, process it
+    if (response) {
+      const data = await response.json();
+      console.log("API response for invokeConversation:", data);
+      
+      // Use the dummy data but merge in the API response data
+      const responseStory = {
+        ...tallestBuildingsStory,
+        originalPrompt: prompt,
+        metadata: {
+          ...tallestBuildingsStory.metadata,
+          apiResponse: data
+        }
+      };
+      
+      return responseStory;
+    }
+    
+    // If all API attempts fail and FALLBACK_TO_DUMMY is enabled, use fallback data
+    if (API_CONFIG.FALLBACK_TO_DUMMY) {
+      console.warn("All API access methods failed for invokeConversation, using fallback data");
+      return {
+        ...tallestBuildingsStory,
+        originalPrompt: prompt,
+        metadata: {
+          ...tallestBuildingsStory.metadata,
+        }
+      };
+    } else {
+      // If fallback is disabled, throw an error
+      throw new Error("All API access methods failed and fallback is disabled");
+    }
+  } catch (error) {
+    console.error("Error in invokeConversation:", error);
+    
+    if (API_CONFIG.FALLBACK_TO_DUMMY) {
+      // Use fallback data if enabled
+      return {
+        ...tallestBuildingsStory,
+        originalPrompt: prompt,
+        metadata: {
+          ...tallestBuildingsStory.metadata,
+          error: error instanceof Error ? error.message : "Unknown error"
+        }
+      };
+    } else {
+      // Rethrow the error if fallback is disabled
+      throw error;
+    }
+  }
 };
 
 /**
