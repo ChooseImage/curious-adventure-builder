@@ -3,7 +3,7 @@ import { tallestBuildingsStory } from '@/utils/dummyData';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 // Base URL for the API
-const BASE_API_URL = 'https://v0-0-43b4---genv-opengpts-al23s7k26q-de.a.run.app';
+const BASE_API_URL = 'https://gtc---genv-opengpts-al23s7k26q-de.a.run.app';
 
 // Configuration for API behavior
 const API_CONFIG = {
