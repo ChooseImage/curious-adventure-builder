@@ -18,6 +18,7 @@ const Index = () => {
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
   const [streamingContent, setStreamingContent] = useState<any[]>([]);
+  const [showStreamDebug, setShowStreamDebug] = useState(true); // Set to false in production
   const navigate = useNavigate();
 
   const handleNavigateToSketch = () => {
@@ -50,7 +51,18 @@ const Index = () => {
       await streamConversation(prompt, (eventType, data) => {
         console.log(`Stream event received: ${eventType}`, data);
         if (eventType === 'data' || eventType === 'metadata') {
-          setStreamingContent(prev => [...prev, { type: eventType, data }]);
+          setStreamingContent(prev => {
+            // Prevent duplicate entries
+            const isDuplicate = prev.some(item => 
+              JSON.stringify(item.data) === JSON.stringify(data) && 
+              item.type === eventType
+            );
+            
+            if (isDuplicate) {
+              return prev;
+            }
+            return [...prev, { type: eventType, data, timestamp: new Date().toISOString() }];
+          });
         } else if (eventType === 'error') {
           console.error('Stream error:', data);
           toast.error(`Stream error: ${data.message}`);
@@ -103,13 +115,25 @@ const Index = () => {
     <div className="min-h-screen w-full bg-background relative">
       {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
 
-      {streamingContent.length > 0 && (
-        <div className="fixed top-4 right-4 w-80 max-h-[400px] overflow-auto bg-black/80 text-white p-4 rounded-lg z-50 font-mono text-xs">
-          <h3 className="text-sm font-bold mb-2">Stream Response:</h3>
-          <div className="overflow-y-auto max-h-[350px]">
+      {showStreamDebug && streamingContent.length > 0 && (
+        <div className="fixed top-4 right-4 w-80 max-h-[500px] overflow-auto bg-black/80 text-white p-4 rounded-lg z-50 font-mono text-xs">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-sm font-bold">Stream Response:</h3>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowStreamDebug(false)}
+              className="h-6 text-xs text-white/70 hover:text-white hover:bg-white/10"
+            >
+              Hide
+            </Button>
+          </div>
+          <div className="overflow-y-auto max-h-[450px]">
             {streamingContent.map((item, index) => (
               <div key={index} className="mb-2 pb-2 border-b border-white/20">
-                <div className="text-xs text-green-400 mb-1">{item.type}:</div>
+                <div className="text-xs text-green-400 mb-1">
+                  {item.type} ({new Date(item.timestamp).toLocaleTimeString()}):
+                </div>
                 <pre className="whitespace-pre-wrap text-xs overflow-hidden text-ellipsis">
                   {JSON.stringify(item.data, null, 2)}
                 </pre>

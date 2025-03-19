@@ -1,4 +1,3 @@
-
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
@@ -30,20 +29,20 @@ export const streamConversation = async (
   
   try {
     // Attempt to call the API directly
-    // Comment this section out if you encounter CORS issues
     try {
       const response = await fetch(`${BASE_API_URL}/headless/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }), // Updated to only send message parameter
+        body: JSON.stringify({ message }),
       });
       
       if (!response.ok) {
         throw new Error(`API responded with status: ${response.status}`);
       }
       
+      // Use the native EventSource API to handle SSE properly
       const reader = response.body?.getReader();
       if (!reader) throw new Error('Failed to get response reader');
       
@@ -53,33 +52,18 @@ export const streamConversation = async (
       
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          // Process any remaining data in the buffer
+          processBuffer(buffer, onEvent);
+          break;
+        }
         
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
         
-        // Process event stream format (lines separated by \n\n)
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
-        
-        for (const line of lines) {
-          if (line.trim() === '') continue;
-          
-          // Parse the SSE format: "event: type\ndata: {...}"
-          const eventMatch = line.match(/^event:\s(.+)$/m);
-          const dataMatch = line.match(/^data:\s(.+)$/m);
-          
-          if (eventMatch && dataMatch) {
-            const eventType = eventMatch[1];
-            try {
-              const eventData = JSON.parse(dataMatch[1]);
-              onEvent(eventType, eventData);
-            } catch (e) {
-              console.error('Error parsing event data:', e);
-              onEvent('error', { message: 'Error parsing event data' });
-            }
-          }
-        }
+        // Process complete events in the buffer
+        const processedBuffer = processBuffer(buffer, onEvent);
+        buffer = processedBuffer;
       }
       
       return { success: true };
@@ -101,6 +85,13 @@ export const streamConversation = async (
       { type: "data", data: [{ content: "Hello there! How can I help", type: "ai", id: `ai-${Date.now()}` }] },
       { type: "data", data: [{ content: "Hello there! How can I help you", type: "ai", id: `ai-${Date.now()}` }] },
       { type: "data", data: [{ content: "Hello there! How can I help you today?", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed to provide", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed to provide information", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed to provide information and answer", type: "ai", id: `ai-${Date.now()}` }] },
+      { type: "data", data: [{ content: "Hello there! How can I help you today? I'm an AI assistant designed to provide information and answer your questions.", type: "ai", id: `ai-${Date.now()}` }] },
     ];
 
     // Simulate streaming by sending events with a delay
@@ -127,6 +118,44 @@ export const streamConversation = async (
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+};
+
+/**
+ * Helper function to process the SSE buffer
+ */
+const processBuffer = (buffer: string, onEvent: (eventType: string, data: any) => void): string => {
+  // Process event stream format (lines separated by \n\n)
+  const events = buffer.split('\n\n');
+  
+  // Keep the last incomplete event in the buffer
+  const lastEvent = events.pop() || '';
+  
+  for (const event of events) {
+    if (event.trim() === '') continue;
+    
+    try {
+      // Parse the SSE format: "event: type\ndata: {...}"
+      const eventMatch = event.match(/^event:\s*(.+)$/m);
+      const dataMatch = event.match(/^data:\s*(.+)$/m);
+      
+      if (eventMatch && dataMatch) {
+        const eventType = eventMatch[1].trim();
+        try {
+          const eventData = JSON.parse(dataMatch[1].trim());
+          onEvent(eventType, eventData);
+        } catch (e) {
+          console.error('Error parsing event data:', e, dataMatch[1]);
+          onEvent('error', { message: 'Error parsing event data', rawData: dataMatch[1] });
+        }
+      } else {
+        console.warn('Malformed SSE event:', event);
+      }
+    } catch (error) {
+      console.error('Error processing event:', error, event);
+    }
+  }
+  
+  return lastEvent;
 };
 
 /**
