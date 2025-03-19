@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
@@ -49,22 +50,30 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
     const latestItem = streamingContent[streamingContent.length - 1];
     if (!latestItem || !latestItem.data) return;
 
+    // Log for debugging
+    console.log("Processing latestItem:", latestItem);
+
     if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
       latestItem.data.content.forEach((contentItem: any) => {
-        if (contentItem.type === "result" && contentItem.content && Array.isArray(contentItem.content.scenes)) {
-          console.log("FOUND RESULT WITH SCENES:", contentItem.content.scenes);
-          setStoryChapters(contentItem.content.scenes);
+        console.log("Content item:", contentItem);
+        
+        // Check for the correct scene structure
+        if (contentItem.type === "result" && Array.isArray(contentItem.scenes)) {
+          console.log("FOUND RESULT WITH SCENES:", contentItem.scenes);
+          setStoryChapters(contentItem.scenes);
           setIsCompleted(true);
         }
       });
     }
 
-    if (latestItem.type === "result" && latestItem.data.content && Array.isArray(latestItem.data.content.scenes)) {
-      console.log("Direct result content with scenes:", latestItem.data.content.scenes);
-      setStoryChapters(latestItem.data.content.scenes);
+    // Check direct result scenes
+    if (latestItem.type === "result" && latestItem.data.scenes && Array.isArray(latestItem.data.scenes)) {
+      console.log("Direct result scenes:", latestItem.data.scenes);
+      setStoryChapters(latestItem.data.scenes);
       setIsCompleted(true);
     }
 
+    // Process AI messages
     if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
       latestItem.data.content.forEach((contentItem: any) => {
         if (contentItem.id && contentItem.content) {
@@ -95,6 +104,16 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
           }
         }
       });
+    }
+    
+    // Handle the exact format the user provided
+    if (latestItem.data.content && Array.isArray(latestItem.data.content) && latestItem.data.content.length > 0) {
+      const firstItem = latestItem.data.content[0];
+      if (firstItem && Array.isArray(firstItem.scenes)) {
+        console.log("Found scenes in first content item:", firstItem.scenes);
+        setStoryChapters(firstItem.scenes);
+        setIsCompleted(true);
+      }
     }
   }, [streamingContent]);
 
@@ -312,4 +331,3 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
 };
 
 export default LoadingState;
-

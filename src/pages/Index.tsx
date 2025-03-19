@@ -36,16 +36,21 @@ const Index = () => {
     
     if (data.content && Array.isArray(data.content)) {
       data.content.forEach((item: any) => {
-        if (item.type === "result" && item.content && Array.isArray(item.content.scenes)) {
-          console.log("FOUND SCENES in content array item:", item.content.scenes);
-          setStoryChapters(item.content.scenes);
+        if (item.type === "result" && Array.isArray(item.scenes)) {
+          console.log("FOUND SCENES in content array item:", item.scenes);
+          setStoryChapters(item.scenes);
         }
       });
+      
+      if (data.content.length > 0 && Array.isArray(data.content[0].scenes)) {
+        console.log("Found scenes in first content item:", data.content[0].scenes);
+        setStoryChapters(data.content[0].scenes);
+      }
     }
     
-    if (eventType === "result" && data.content && Array.isArray(data.content.scenes)) {
-      console.log("Direct result with scenes:", data.content.scenes);
-      setStoryChapters(data.content.scenes);
+    if (data.scenes && Array.isArray(data.scenes)) {
+      console.log("Direct scenes array:", data.scenes);
+      setStoryChapters(data.scenes);
     }
     
     setStreamingContent(prev => {
@@ -98,16 +103,21 @@ const Index = () => {
         
         if (data.content && Array.isArray(data.content)) {
           data.content.forEach((item: any) => {
-            if (item.type === "result" && item.content && Array.isArray(item.content.scenes)) {
-              console.log("Setting chapters from stream callback (content array):", item.content.scenes);
-              setStoryChapters(item.content.scenes);
+            if (item.type === "result" && Array.isArray(item.scenes)) {
+              console.log("Setting chapters from stream callback (content array):", item.scenes);
+              setStoryChapters(item.scenes);
             }
           });
+          
+          if (data.content.length > 0 && Array.isArray(data.content[0].scenes)) {
+            console.log("Setting chapters from first content item:", data.content[0].scenes);
+            setStoryChapters(data.content[0].scenes);
+          }
         }
         
-        if (eventType === "result" && data.content && Array.isArray(data.content.scenes)) {
-          console.log("Setting chapters from stream callback (direct):", data.content.scenes);
-          setStoryChapters(data.content.scenes);
+        if (data.scenes && Array.isArray(data.scenes)) {
+          console.log("Setting chapters from direct scenes:", data.scenes);
+          setStoryChapters(data.scenes);
         }
       });
       
