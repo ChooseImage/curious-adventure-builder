@@ -14,7 +14,6 @@ import BuildingsVisualization from "@/components/BuildingsVisualization";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import StreamDebugger from "@/components/StreamDebugger";
 
-// Import the API_CONFIG for displaying status
 const API_CONFIG = {
   LOCAL_MODE: false,
   FALLBACK_TO_DUMMY: true,
@@ -32,18 +31,15 @@ const Index = () => {
   const [storyChapters, setStoryChapters] = useState<any[]>([]);
   const navigate = useNavigate();
 
-  // Function to log streaming content both to state and console
   const logStreamContent = (eventType: string, data: any) => {
     console.log(`Stream event received (${eventType}):`, data);
     
-    // Process result type content with chapters
     if (eventType === "result" && data.content && Array.isArray(data.content.scenes)) {
+      console.log("Result content item with scenes:", data);
       setStoryChapters(data.content.scenes);
     }
     
-    // Add to state for UI display
     setStreamingContent(prev => {
-      // Prevent duplicate entries by checking timestamp
       const timestamp = new Date().toISOString();
       const newItem = { 
         type: eventType, 
@@ -55,7 +51,6 @@ const Index = () => {
     });
   };
 
-  // Function to navigate to story chapter with chapters data
   const handleNavigateToStory = (chapterId: number) => {
     navigate(`/story/${chapterId}`, { state: { chapters: storyChapters } });
   };
@@ -88,19 +83,15 @@ const Index = () => {
     setStoryChapters([]);
     
     try {
-      // Start streaming response from API
       toast.info("Starting stream...");
       const streamResponse = await streamConversation(prompt, (eventType, data) => {
-        // Use our logStreamContent function to log the streaming content
         logStreamContent(eventType, data);
         
-        // Check if this is a result type with chapters
         if (eventType === "result" && data.content && Array.isArray(data.content.scenes)) {
           setStoryChapters(data.content.scenes);
         }
       });
       
-      // Check if there was an error with streaming
       if (!streamResponse.success) {
         console.warn("Stream unsuccessful:", streamResponse.error);
         if (streamResponse.error) {
@@ -111,7 +102,6 @@ const Index = () => {
         }
       }
       
-      // After streaming is complete, generate the final story
       const story = await invokeConversation(prompt);
       
       console.log('Successfully loaded story:', story.title);
@@ -126,7 +116,6 @@ const Index = () => {
       setApiError(errorMessage);
       toast.error("Using fallback dummy data");
       
-      // Use dummy data as fallback
       setActiveStory({
         ...tallestBuildingsStory,
         originalPrompt: prompt,
@@ -163,7 +152,6 @@ const Index = () => {
 
   const toggleStreamDebug = () => {
     setShowStreamDebug(prev => !prev);
-    // Log that debug mode was toggled
     console.log(`Stream debug ${!showStreamDebug ? 'enabled' : 'disabled'}`);
   };
 
@@ -181,13 +169,11 @@ const Index = () => {
     <div className="min-h-screen w-full bg-background relative">
       {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
 
-      {/* Stream Debugger Component - Now with enhanced real-time updates */}
       <StreamDebugger 
         streamingContent={streamingContent} 
         visible={showStreamDebug} 
       />
 
-      {/* Story Chapters Section - Shows when chapters are available */}
       {storyChapters.length > 0 && storyState === 'ready' && (
         <div className="fixed top-20 left-0 right-0 z-50 flex justify-center">
           <div className="bg-black/80 backdrop-blur-md p-6 rounded-lg max-w-2xl">

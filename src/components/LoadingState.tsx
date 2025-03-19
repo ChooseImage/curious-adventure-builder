@@ -52,6 +52,9 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
 
     // Handle different types of content
     if (latestItem.type === "result" && latestItem.data.content && Array.isArray(latestItem.data.content.scenes)) {
+      // Log the first instance of result type content
+      console.log("First result content item:", latestItem);
+      
       // This is the final result with story chapters
       setStoryChapters(latestItem.data.content.scenes);
       setIsCompleted(true);
@@ -86,6 +89,9 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
           }
           // Handle result type with scenes
           else if (contentItem.type === "result" && contentItem.content && contentItem.content.scenes) {
+            // Log the first instance of result type content
+            console.log("Result content item inside content array:", contentItem);
+            
             setStoryChapters(contentItem.content.scenes);
             setIsCompleted(true);
           }
@@ -255,7 +261,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
         {isCompleted && storyChapters.length > 0 ? (
           <div className="bg-black/80 backdrop-blur-md p-6 rounded-lg max-w-2xl mx-auto">
             <h2 className="text-2xl font-semibold text-white mb-4">Your Storybook is Ready!</h2>
-            <p className="text-white/90 mb-6">Explore your interactive storybook with three chapters:</p>
+            <p className="text-white/90 mb-6">Explore your interactive storybook with {storyChapters.length} chapters:</p>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {storyChapters.map((chapter, index) => (
