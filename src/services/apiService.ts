@@ -2,72 +2,58 @@ import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
 // Base URL for the API - keeping this for future reference
-const BASE_API_URL = 'https://v0-0-43b2---genv-opengpts-al23s7k26q-de.a.run.app';
+const BASE_API_URL = 'https://v0-0-43b4---genv-opengpts-al23s7k26q-de.a.run.app';
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
 // Function to get full proxied URL - keeping for future reference
 const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
 
-export interface ThreadResponse {
-  thread_id: string;
-  user_id?: string;
-  assistant_id?: string;
-  name?: string;
-  updated_at?: string;
-  metadata?: {
-    assistant_type?: string;
-    [key: string]: any;
-  };
-  status?: string;
-}
-
-export interface InvokeRequest {
-  thread_id: string;
-  input: {
-    message: string;
-    canvas: string;
-  };
-  stream?: boolean;
-}
-
-export interface InvokeResponse {
-  message_id: string;
-  thread_id: string;
-  content: any;
-  status: string;
-}
-
 export interface StreamRequest {
-  thread_id: string;
-  message: string;
+  message: string; // Updated to match new API schema
 }
 
-/**
- * Creates a new conversation thread
- * Always returns mock data without making API calls
- */
-export const createThread = async (): Promise<ThreadResponse> => {
-  console.log('Creating mock thread');
-  
-  // Always return a mock response without attempting API call
-  return {
-    thread_id: `mock-thread-${Date.now()}`,
-    status: 'success'
-  };
-};
+export interface StreamResponse {
+  success: boolean;
+  error?: string;
+}
 
 /**
  * Streams a conversation with a prompt
  * Uses the headless/stream endpoint
  */
-export const streamThread = async (
-  threadId: string,
+export const streamConversation = async (
   message: string,
   onEvent: (eventType: string, data: any) => void
-) => {
-  console.log(`Streaming thread with ID: ${threadId} and message: ${message}`);
+): Promise<StreamResponse> => {
+  console.log(`Streaming conversation with message: ${message}`);
   
   try {
+    // In production, we would use this code to call the API:
+    // const response = await fetch(`${BASE_API_URL}/headless/stream`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({ message }),
+    // });
+    
+    // if (!response.ok) {
+    //   throw new Error(`API responded with status: ${response.status}`);
+    // }
+    
+    // const reader = response.body?.getReader();
+    // if (!reader) throw new Error('Failed to get response reader');
+    
+    // // Process the stream
+    // const decoder = new TextDecoder();
+    // while (true) {
+    //   const { done, value } = await reader.read();
+    //   if (done) break;
+    //   
+    //   const chunk = decoder.decode(value);
+    //   // Process chunk and call onEvent
+    // }
+    
     // Mock streaming response for development/testing purposes
     // In a production environment, this would make an actual API call
     const mockStreamData = [
@@ -97,8 +83,7 @@ export const streamThread = async (
     }, 300);  // Send a new chunk every 300ms
 
     return {
-      success: true,
-      threadId: threadId
+      success: true
     };
   } catch (error) {
     console.error('Error in stream request:', error);
@@ -114,10 +99,7 @@ export const streamThread = async (
  * Invokes a conversation with a prompt
  * Always returns dummy data without making API calls
  */
-export const invokeThread = async (
-  threadId: string, 
-  prompt: string
-): Promise<Story> => {
+export const invokeConversation = async (prompt: string): Promise<Story> => {
   console.log(`Using dummy data for prompt: ${prompt}`);
   
   // Return the dummy building story with the original prompt
@@ -126,7 +108,7 @@ export const invokeThread = async (
     originalPrompt: prompt,
     metadata: {
       ...tallestBuildingsStory.metadata,
-      thread_id: threadId
+      // No thread_id anymore since it's not needed
     }
   };
   

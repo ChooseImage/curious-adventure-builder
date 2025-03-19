@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -7,7 +6,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import { Story, StoryState } from "@/types/story";
 import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
-import { createThread, invokeThread, streamThread } from "@/services/apiService";
+import { streamConversation, invokeConversation } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +15,6 @@ import BuildingsVisualization from "@/components/BuildingsVisualization";
 const Index = () => {
   const [storyState, setStoryState] = useState<StoryState>('idle');
   const [activeStory, setActiveStory] = useState<Story | null>(null);
-  const [threadId, setThreadId] = useState<string | null>(null);
   const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
   const [streamingContent, setStreamingContent] = useState<any[]>([]);
   const navigate = useNavigate();
@@ -46,19 +44,9 @@ const Index = () => {
     setStreamingContent([]);
     
     try {
-      let currentThreadId = threadId;
-      if (!currentThreadId) {
-        toast.info("Creating a new conversation thread...");
-        const threadResponse = await createThread();
-        currentThreadId = threadResponse.thread_id;
-        setThreadId(currentThreadId);
-        console.log('Created new thread:', currentThreadId);
-        toast.success("Thread created successfully!");
-      }
-      
       // Start streaming response
       toast.info("Starting stream...");
-      streamThread(currentThreadId, prompt, (eventType, data) => {
+      await streamConversation(prompt, (eventType, data) => {
         console.log(`Stream event received: ${eventType}`, data);
         if (eventType === 'data' || eventType === 'metadata') {
           setStreamingContent(prev => [...prev, { type: eventType, data }]);
@@ -69,7 +57,7 @@ const Index = () => {
       });
       
       toast.info("Generating content from dummy data...");
-      const story = await invokeThread(currentThreadId, prompt);
+      const story = await invokeConversation(prompt);
       
       console.log('Successfully loaded story:', story.title);
       setActiveStory(story);
