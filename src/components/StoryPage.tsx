@@ -87,9 +87,9 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
   // Function to add paragraph spacing to content
   const formatContent = (content: string) => {
     if (!content) return '';
-    // Split by paragraphs and join with increased spacing
+    // Split by paragraphs and join with increased spacing (mb-24 instead of mb-6)
     return content.split('\n').map((paragraph, index) => (
-      <p key={index} className="mb-6 leading-relaxed">{paragraph}</p>
+      <p key={index} className="mb-24 leading-relaxed">{paragraph}</p>
     ));
   };
 
@@ -100,7 +100,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         {chapter.html ? (
           <>
             {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background">
+              <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-2xl font-light animate-pulse">Loading chapter...</div>
               </div>
             )}
@@ -112,30 +112,30 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
             />
           </>
         ) : (
-          <div className="w-full h-full bg-gradient-to-b from-indigo-500 to-purple-700">
-            {/* Fallback background */}
+          <div className="w-full h-full">
+            {/* Empty div for background */}
           </div>
         )}
       </div>
       
-      {/* Semi-transparent article container */}
+      {/* Transparent article container */}
       <div className="relative z-10 pt-8 pb-16 px-4 min-h-screen flex flex-col items-center">
         {/* Navigation header - smaller and more subtle */}
         <header className="w-full max-w-3xl mx-auto flex justify-between items-center mb-12 px-4">
           <Link to="/">
-            <Button variant="outline" size="sm" className="backdrop-blur-md bg-black/20 text-white border-white/20 hover:bg-black/30">
+            <Button variant="outline" size="sm" className="text-white border-white/20 hover:text-white">
               <Home className="h-4 w-4 mr-2" />
               Home
             </Button>
           </Link>
           
-          <div className="text-white text-sm font-medium backdrop-blur-md bg-black/20 px-3 py-1.5 rounded-full">
+          <div className="text-white text-sm font-medium px-3 py-1.5 rounded-full">
             Chapter {chapterIndex + 1} of {totalChapters}
           </div>
         </header>
         
         {/* Article content with better spacing */}
-        <article className="prose prose-lg prose-invert max-w-3xl w-full mx-auto px-6 py-8 backdrop-blur-sm bg-black/30 rounded-xl border border-white/10">
+        <article className="prose prose-lg prose-invert max-w-3xl w-full mx-auto px-6 py-8 rounded-xl border border-white/10">
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-8 leading-tight">
             {chapter.article.title || "Chapter Title Not Available"}
           </h1>
@@ -149,7 +149,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         <footer className="w-full max-w-3xl mx-auto flex justify-between items-center mt-12 px-4">
           {prevChapter ? (
             <Link to={prevChapter}>
-              <Button variant="outline" size="sm" className="backdrop-blur-md bg-black/20 text-white border-white/20 hover:bg-black/30">
+              <Button variant="outline" size="sm" className="text-white border-white/20 hover:text-white">
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous Chapter
               </Button>
@@ -160,14 +160,14 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
           
           {nextChapter ? (
             <Link to={nextChapter}>
-              <Button variant="outline" size="sm" className="backdrop-blur-md bg-black/20 text-white border-white/20 hover:bg-black/30">
+              <Button variant="outline" size="sm" className="text-white border-white/20 hover:text-white">
                 Next Chapter
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
           ) : (
             <Link to="/">
-              <Button variant="outline" size="sm" className="backdrop-blur-md bg-black/20 text-white border-white/20 hover:bg-black/30">
+              <Button variant="outline" size="sm" className="text-white border-white/20 hover:text-white">
                 Finish Story
                 <Home className="h-4 w-4 ml-2" />
               </Button>
