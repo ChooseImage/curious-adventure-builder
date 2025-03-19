@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
@@ -116,6 +115,10 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
       }
     }
   }, [streamingContent]);
+
+  useEffect(() => {
+    console.log('UPDATED storyChapters:', storyChapters);
+  }, [storyChapters]);
 
   useEffect(() => {
     if (!containerRef.current) return;
