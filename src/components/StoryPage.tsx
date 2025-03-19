@@ -4,11 +4,12 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import { toast } from 'sonner';
+import VideoPlayer from './VideoPlayer';
 
 interface StoryPageProps {
   chapters?: {
     html: string;
-    gliastar: string;
+    gliastar: string;  // This contains the video URL
     article: {
       title: string;
       content: string;
@@ -72,6 +73,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     ? localChapters[chapterIndex] 
     : {
         html: '',
+        gliastar: '',
         article: { title: 'Chapter not found', content: 'Sorry, this chapter could not be loaded.' }
       };
   
@@ -117,6 +119,11 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
           </div>
         )}
       </div>
+      
+      {/* Display video player if there's a gliastar video URL */}
+      {chapter.gliastar && (
+        <VideoPlayer videoUrl={chapter.gliastar} />
+      )}
       
       {/* Transparent article container */}
       <div className="relative z-10 pt-8 pb-16 px-4 min-h-screen flex flex-col items-center">
