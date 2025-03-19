@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -13,6 +12,7 @@ import { AlertCircle, ExternalLink, RefreshCw, Code, Settings } from "lucide-rea
 import { useNavigate } from "react-router-dom";
 import BuildingsVisualization from "@/components/BuildingsVisualization";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import StreamDebugger from "@/components/StreamDebugger";
 
 // Import the API_CONFIG for displaying status
 const API_CONFIG = {
@@ -30,6 +30,32 @@ const Index = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const navigate = useNavigate();
+
+  // Function to log streaming content both to state and console
+  const logStreamContent = (eventType: string, data: any) => {
+    console.log(`Stream event received (${eventType}):`, data);
+    
+    // Add to state for UI display
+    setStreamingContent(prev => {
+      // Prevent duplicate entries
+      const isDuplicate = prev.some(item => 
+        JSON.stringify(item.data) === JSON.stringify(data) && 
+        item.type === eventType
+      );
+      
+      if (isDuplicate) {
+        return prev;
+      }
+      
+      const newItem = { 
+        type: eventType, 
+        data, 
+        timestamp: new Date().toISOString() 
+      };
+      
+      return [...prev, newItem];
+    });
+  };
 
   const handleNavigateToSketch = () => {
     console.log("Navigating to /sketch");
@@ -61,25 +87,8 @@ const Index = () => {
       // Start streaming response from API
       toast.info("Starting stream...");
       const streamResponse = await streamConversation(prompt, (eventType, data) => {
-        console.log(`Stream event received: ${eventType}`, data);
-        if (eventType === 'data' || eventType === 'metadata') {
-          setStreamingContent(prev => {
-            // Prevent duplicate entries
-            const isDuplicate = prev.some(item => 
-              JSON.stringify(item.data) === JSON.stringify(data) && 
-              item.type === eventType
-            );
-            
-            if (isDuplicate) {
-              return prev;
-            }
-            return [...prev, { type: eventType, data, timestamp: new Date().toISOString() }];
-          });
-        } else if (eventType === 'error') {
-          console.error('Stream error:', data);
-          toast.error(`Stream error: ${data.message}`);
-          setApiError(data.message);
-        }
+        // Use our new function to log the streaming content
+        logStreamContent(eventType, data);
       });
       
       // Check if there was an error with streaming
@@ -145,6 +154,8 @@ const Index = () => {
 
   const toggleStreamDebug = () => {
     setShowStreamDebug(prev => !prev);
+    // Log that debug mode was toggled
+    console.log(`Stream debug ${!showStreamDebug ? 'enabled' : 'disabled'}`);
   };
 
   const getYoutubeId = (url: string) => {
@@ -160,6 +171,12 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full bg-background relative">
       {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
+
+      {/* Stream Debugger Component */}
+      <StreamDebugger 
+        streamingContent={streamingContent} 
+        visible={showStreamDebug} 
+      />
 
       {apiError && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center max-w-md">
@@ -217,7 +234,7 @@ const Index = () => {
           className="bg-black/70 text-white border-gray-700 hover:bg-black/90"
         >
           <Code className="h-4 w-4 mr-2" />
-          {showStreamDebug ? "Hide" : "Show"} Debug Panel
+          {showStreamDebug ? "Hide" : "Show"} Stream Data
         </Button>
       </div>
 
