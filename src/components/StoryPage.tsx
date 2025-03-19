@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
+import { toast } from 'sonner';
 
 interface StoryPageProps {
   chapters?: {
@@ -19,16 +20,32 @@ interface StoryPageProps {
 const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
   const { chapterId } = useParams<{ chapterId: string }>();
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
   
   // Convert chapterId to index (1-based to 0-based)
   const chapterIndex = parseInt(chapterId || '1') - 1;
   const totalChapters = chapters.length;
   
-  // Get current chapter data
-  const chapter = chapters[chapterIndex] || {
-    html: '',
-    article: { title: 'Chapter not found', content: 'Sorry, this chapter could not be loaded.' }
-  };
+  useEffect(() => {
+    console.log("StoryPage component received chapters:", chapters);
+    console.log("Current chapter index:", chapterIndex);
+    
+    if (chapters.length === 0) {
+      toast.error("No chapters found. Returning to home page.");
+      setTimeout(() => navigate('/'), 2000);
+    } else if (chapterIndex < 0 || chapterIndex >= chapters.length) {
+      toast.error(`Invalid chapter number. Valid range: 1-${chapters.length}`);
+      setTimeout(() => navigate('/story/1'), 2000);
+    }
+  }, [chapters, chapterIndex, navigate]);
+  
+  // Get current chapter data with better error handling
+  const chapter = chapters.length > 0 && chapterIndex >= 0 && chapterIndex < chapters.length 
+    ? chapters[chapterIndex] 
+    : {
+        html: '',
+        article: { title: 'Chapter not found', content: 'Sorry, this chapter could not be loaded.' }
+      };
   
   // Setup navigation
   const prevChapter = chapterIndex > 0 ? `/story/${chapterIndex}` : null;
@@ -84,12 +101,12 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         <div className="flex-grow flex flex-col mb-20">
           <div className="bg-black/60 backdrop-blur-md rounded-lg p-8 flex-grow">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              {chapter.article.title}
+              {chapter.article.title || "Chapter Title Not Available"}
             </h1>
             
             <ScrollArea className="h-[calc(100vh-300px)] pr-4">
               <div className="text-white/90 text-lg leading-relaxed whitespace-pre-line">
-                {chapter.article.content}
+                {chapter.article.content || "Chapter content not available"}
               </div>
             </ScrollArea>
           </div>
