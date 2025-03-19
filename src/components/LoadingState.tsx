@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
@@ -50,18 +49,25 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
     const latestItem = streamingContent[streamingContent.length - 1];
     if (!latestItem || !latestItem.data) return;
 
-    // Handle different types of content
+    if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
+      latestItem.data.content.forEach((contentItem: any) => {
+        if (contentItem.type === "result" && contentItem.content && Array.isArray(contentItem.content.scenes)) {
+          console.log("FOUND RESULT WITH SCENES:", contentItem.content.scenes);
+          setStoryChapters(contentItem.content.scenes);
+          setIsCompleted(true);
+        }
+      });
+    }
+
     if (latestItem.type === "result" && latestItem.data.content && Array.isArray(latestItem.data.content.scenes)) {
-      // Log the first instance of result type content with scenes
-      console.log("First result content item with scenes:", latestItem.data.content.scenes);
-      
-      // This is the final result with story chapters
+      console.log("Direct result content with scenes:", latestItem.data.content.scenes);
       setStoryChapters(latestItem.data.content.scenes);
       setIsCompleted(true);
-    } else if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
+    }
+
+    if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
       latestItem.data.content.forEach((contentItem: any) => {
         if (contentItem.id && contentItem.content) {
-          // Handle AI text streaming
           if (contentItem.type === "ai") {
             setMessages(prevMessages => {
               const existingIndex = prevMessages.findIndex(m => m.id === contentItem.id);
@@ -86,14 +92,6 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
                 return updatedMessages;
               }
             });
-          }
-          // Handle result type with scenes
-          else if (contentItem.type === "result" && contentItem.content && contentItem.content.scenes) {
-            // Log the first instance of result type content with scenes
-            console.log("Result content item with scenes inside content array:", contentItem.content.scenes);
-            
-            setStoryChapters(contentItem.content.scenes);
-            setIsCompleted(true);
           }
         }
       });
@@ -314,3 +312,4 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
 };
 
 export default LoadingState;
+
