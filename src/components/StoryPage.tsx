@@ -153,7 +153,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
             {chapter.article.title || "Chapter Title Not Available"}
           </h1>
           
-          <div className="text-white/90 text-lg space-y-6 w-full">
+          <div className="text-white/90 text-lg space-y-60 w-full">
             {formatContent(chapter.article.content)}
           </div>
         </article>
