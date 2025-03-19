@@ -52,8 +52,8 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
 
     // Handle different types of content
     if (latestItem.type === "result" && latestItem.data.content && Array.isArray(latestItem.data.content.scenes)) {
-      // Log the first instance of result type content
-      console.log("First result content item:", latestItem);
+      // Log the first instance of result type content with scenes
+      console.log("First result content item with scenes:", latestItem.data.content.scenes);
       
       // This is the final result with story chapters
       setStoryChapters(latestItem.data.content.scenes);
@@ -89,8 +89,8 @@ const LoadingState: React.FC<LoadingStateProps> = ({ isLoading, streamingContent
           }
           // Handle result type with scenes
           else if (contentItem.type === "result" && contentItem.content && contentItem.content.scenes) {
-            // Log the first instance of result type content
-            console.log("Result content item inside content array:", contentItem);
+            // Log the first instance of result type content with scenes
+            console.log("Result content item with scenes inside content array:", contentItem.content.scenes);
             
             setStoryChapters(contentItem.content.scenes);
             setIsCompleted(true);

@@ -39,6 +39,15 @@ const Index = () => {
       setStoryChapters(data.content.scenes);
     }
     
+    if (data.content && Array.isArray(data.content)) {
+      data.content.forEach((item: any) => {
+        if (item.type === "result" && item.content && Array.isArray(item.content.scenes)) {
+          console.log("Found scenes in content array item:", item.content.scenes);
+          setStoryChapters(item.content.scenes);
+        }
+      });
+    }
+    
     setStreamingContent(prev => {
       const timestamp = new Date().toISOString();
       const newItem = { 
@@ -88,7 +97,17 @@ const Index = () => {
         logStreamContent(eventType, data);
         
         if (eventType === "result" && data.content && Array.isArray(data.content.scenes)) {
+          console.log("Setting story chapters from stream callback:", data.content.scenes);
           setStoryChapters(data.content.scenes);
+        }
+        
+        if (eventType === "content" && data.content && Array.isArray(data.content)) {
+          data.content.forEach((item: any) => {
+            if (item.type === "result" && item.content && Array.isArray(item.content.scenes)) {
+              console.log("Setting story chapters from content array item:", item.content.scenes);
+              setStoryChapters(item.content.scenes);
+            }
+          });
         }
       });
       
