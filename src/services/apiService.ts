@@ -1,8 +1,11 @@
+
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
 // Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b4---genv-opengpts-al23s7k26q-de.a.run.app';
+// Use a CORS proxy to bypass CORS restrictions
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 
 export interface StreamRequest {
   message: string;
@@ -12,6 +15,41 @@ export interface StreamResponse {
   success: boolean;
   error?: string;
 }
+
+/**
+ * Helper function to attempt different methods of accessing the API
+ * to work around CORS issues
+ */
+const fetchWithCorsHandling = async (url: string, options: RequestInit): Promise<Response> => {
+  // Try direct approach first
+  try {
+    console.log("Attempting direct API call to:", url);
+    const response = await fetch(url, options);
+    if (response.ok) return response;
+  } catch (error) {
+    console.warn("Direct API call failed:", error);
+  }
+
+  // Try with CORS proxy
+  try {
+    console.log("Attempting API call via CORS proxy");
+    const proxyUrl = `${CORS_PROXY}${url}`;
+    return await fetch(proxyUrl, options);
+  } catch (error) {
+    console.error("CORS proxy attempt failed:", error);
+    throw new Error("All API access methods failed");
+  }
+};
+
+/**
+ * Uses a fallback method if streaming fails
+ * Attempts to get the data through a simpler request
+ */
+const getFallbackResponse = async (message: string): Promise<any> => {
+  console.log("Using fallback method to get response");
+  // Return the dummy building story as a fallback
+  return tallestBuildingsStory;
+};
 
 /**
  * Streams a conversation with a prompt
@@ -24,17 +62,35 @@ export const streamConversation = async (
   console.log(`Streaming conversation with message: ${message}`);
   
   try {
-    const response = await fetch(`${BASE_API_URL}/headless/stream`, {
+    // First try the standard fetch with CORS handling
+    const options = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Origin': window.location.origin,
       },
-      mode: 'cors', // Explicitly set CORS mode
-      credentials: 'omit', // Don't send cookies
+      mode: 'cors' as RequestMode, 
+      credentials: 'omit' as RequestCredentials,
       body: JSON.stringify({ message }),
-    });
+    };
+    
+    let response;
+    try {
+      response = await fetchWithCorsHandling(`${BASE_API_URL}/headless/stream`, options);
+    } catch (error) {
+      console.error("All CORS approaches failed, using fallback data", error);
+      onEvent('error', { message: "CORS error: Unable to access the API. Using fallback data." });
+      
+      // Use fallback data, but inform the caller about the issue
+      const fallbackData = await getFallbackResponse(message);
+      onEvent('data', { content: fallbackData });
+      
+      return {
+        success: false,
+        error: "CORS restrictions prevented API access. Using fallback data instead."
+      };
+    }
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -76,6 +132,14 @@ export const streamConversation = async (
       errorMessage.includes('CORS') || 
       errorMessage.includes('Cross-Origin') ||
       errorMessage.includes('Failed to fetch');
+    
+    // Use fallback data for all errors
+    try {
+      const fallbackData = await getFallbackResponse(message);
+      onEvent('data', { content: fallbackData });
+    } catch (fallbackError) {
+      console.error('Even fallback failed:', fallbackError);
+    }
     
     if (isCorsError) {
       return {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -9,7 +8,7 @@ import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
 import { streamConversation, invokeConversation } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { AlertCircle, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BuildingsVisualization from "@/components/BuildingsVisualization";
 
@@ -18,7 +17,8 @@ const Index = () => {
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
   const [streamingContent, setStreamingContent] = useState<any[]>([]);
-  const [showStreamDebug, setShowStreamDebug] = useState(false); // Set to false in production
+  const [showStreamDebug, setShowStreamDebug] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleNavigateToSketch = () => {
@@ -42,13 +42,14 @@ const Index = () => {
 
   const handlePromptSubmit = async (prompt: string) => {
     setStoryState('loading');
+    setApiError(null);
     toast.info("Generating your story...");
     setStreamingContent([]);
     
     try {
       // Start streaming response from API
       toast.info("Starting stream...");
-      await streamConversation(prompt, (eventType, data) => {
+      const streamResponse = await streamConversation(prompt, (eventType, data) => {
         console.log(`Stream event received: ${eventType}`, data);
         if (eventType === 'data' || eventType === 'metadata') {
           setStreamingContent(prev => {
@@ -66,8 +67,20 @@ const Index = () => {
         } else if (eventType === 'error') {
           console.error('Stream error:', data);
           toast.error(`Stream error: ${data.message}`);
+          setApiError(data.message);
         }
       });
+      
+      // Check if there was an error with streaming
+      if (!streamResponse.success) {
+        console.warn("Stream unsuccessful:", streamResponse.error);
+        if (streamResponse.error) {
+          setApiError(streamResponse.error);
+          toast.error(streamResponse.error, {
+            duration: 4000,
+          });
+        }
+      }
       
       // After streaming is complete, generate the final story
       const story = await invokeConversation(prompt);
@@ -80,6 +93,8 @@ const Index = () => {
       
     } catch (error) {
       console.error("Error processing prompt:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setApiError(errorMessage);
       toast.error("Using fallback dummy data");
       
       // Use dummy data as fallback
@@ -99,6 +114,7 @@ const Index = () => {
     setActiveStory(null);
     setHasValidThreeJsContent(false);
     setStreamingContent([]);
+    setApiError(null);
   };
 
   const getYoutubeId = (url: string) => {
@@ -111,11 +127,42 @@ const Index = () => {
 
   const videoUrl = "https://static-gstudio.gliacloud.com/10903/files/a86e423ead118924eba4577a3505f818aff8c413.mp4";
 
+  const toggleStreamDebug = () => {
+    setShowStreamDebug(prev => !prev);
+  };
+
   return (
     <div className="min-h-screen w-full bg-background relative">
       {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
 
-      {showStreamDebug && streamingContent.length > 0 && (
+      {apiError && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center max-w-md">
+          <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium">API Error</p>
+            <p className="text-sm">{apiError}</p>
+          </div>
+          <button 
+            onClick={() => setApiError(null)} 
+            className="ml-2 text-white/80 hover:text-white"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <div className="fixed bottom-24 right-4 z-50">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={toggleStreamDebug}
+          className="bg-black/70 text-white border-gray-700 hover:bg-black/90"
+        >
+          {showStreamDebug ? "Hide" : "Show"} Debug
+        </Button>
+      </div>
+
+      {showStreamDebug && (
         <div className="fixed top-4 right-4 w-80 max-h-[500px] overflow-auto bg-black/80 text-white p-4 rounded-lg z-50 font-mono text-xs">
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-sm font-bold">Stream Response:</h3>
@@ -179,7 +226,6 @@ const Index = () => {
                   </div>
                 </div>
                 
-                {/* Adding more scrollable content */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
                   {tallestBuildingsStory.scenes.slice(2, 8).map((scene, index) => (
                     scene.data && (
