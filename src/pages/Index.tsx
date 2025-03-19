@@ -35,6 +35,12 @@ const Index = () => {
   // Debug log whenever storyChapters changes
   useEffect(() => {
     console.log("Index component - storyChapters updated:", storyChapters);
+    
+    // Save chapters to localStorage whenever they're updated
+    if (storyChapters.length > 0) {
+      console.log("Saving story chapters to localStorage:", storyChapters);
+      localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
+    }
   }, [storyChapters]);
 
   const logStreamContent = (eventType: string, data: any) => {
@@ -75,11 +81,17 @@ const Index = () => {
     console.log("handleStoryChaptersUpdated called with chapters:", chapters);
     if (chapters && chapters.length > 0) {
       setStoryChapters(chapters);
+      // Save to localStorage immediately when chapters are updated
+      localStorage.setItem('storyChapters', JSON.stringify(chapters));
     }
   };
 
   const handleNavigateToStory = (chapterId: number) => {
     console.log("Navigating to story with chapters:", storyChapters);
+    // Ensure chapters are in localStorage before navigation
+    if (storyChapters.length > 0) {
+      localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
+    }
     navigate(`/story/${chapterId}`, { state: { chapters: storyChapters } });
   };
 

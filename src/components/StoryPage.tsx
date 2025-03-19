@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
-import { ScrollArea } from './ui/scroll-area';
 import { toast } from 'sonner';
 
 interface StoryPageProps {
@@ -21,27 +20,56 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
   const { chapterId } = useParams<{ chapterId: string }>();
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const [localChapters, setLocalChapters] = useState(chapters);
   
   // Convert chapterId to index (1-based to 0-based)
   const chapterIndex = parseInt(chapterId || '1') - 1;
-  const totalChapters = chapters.length;
   
   useEffect(() => {
-    console.log("StoryPage component received chapters:", chapters);
+    // If no chapters were provided as props, try to get them from localStorage
+    if (chapters.length === 0) {
+      try {
+        const storedChapters = localStorage.getItem('storyChapters');
+        if (storedChapters) {
+          const parsedChapters = JSON.parse(storedChapters);
+          console.log("Retrieved chapters from localStorage:", parsedChapters);
+          setLocalChapters(parsedChapters);
+        } else {
+          console.warn("No chapters found in localStorage");
+          toast.error("No story chapters found. Returning to home page.");
+          setTimeout(() => navigate('/'), 2000);
+        }
+      } catch (error) {
+        console.error("Error retrieving chapters from localStorage:", error);
+        toast.error("Error loading story. Returning to home page.");
+        setTimeout(() => navigate('/'), 2000);
+      }
+    } else {
+      // If chapters were provided as props, store them in localStorage for future use
+      console.log("Storing chapters in localStorage:", chapters);
+      localStorage.setItem('storyChapters', JSON.stringify(chapters));
+      setLocalChapters(chapters);
+    }
+  }, [chapters, navigate]);
+  
+  // Get total chapters from our localChapters state
+  const totalChapters = localChapters.length;
+  
+  useEffect(() => {
+    console.log("StoryPage component with chapters:", localChapters);
     console.log("Current chapter index:", chapterIndex);
     
-    if (chapters.length === 0) {
-      toast.error("No chapters found. Returning to home page.");
-      setTimeout(() => navigate('/'), 2000);
-    } else if (chapterIndex < 0 || chapterIndex >= chapters.length) {
-      toast.error(`Invalid chapter number. Valid range: 1-${chapters.length}`);
+    if (localChapters.length === 0) {
+      // This is handled in the first useEffect
+    } else if (chapterIndex < 0 || chapterIndex >= localChapters.length) {
+      toast.error(`Invalid chapter number. Valid range: 1-${localChapters.length}`);
       setTimeout(() => navigate('/story/1'), 2000);
     }
-  }, [chapters, chapterIndex, navigate]);
+  }, [localChapters, chapterIndex, navigate]);
   
   // Get current chapter data with better error handling
-  const chapter = chapters.length > 0 && chapterIndex >= 0 && chapterIndex < chapters.length 
-    ? chapters[chapterIndex] 
+  const chapter = localChapters.length > 0 && chapterIndex >= 0 && chapterIndex < localChapters.length 
+    ? localChapters[chapterIndex] 
     : {
         html: '',
         article: { title: 'Chapter not found', content: 'Sorry, this chapter could not be loaded.' }

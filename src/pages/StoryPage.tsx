@@ -11,23 +11,35 @@ const StoryPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   // Get chapters from location state, or provide empty array as fallback
+  // We'll let the StoryPageComponent handle localStorage retrieval if this is empty
   const chapters = state?.chapters || [];
   
   useEffect(() => {
-    console.log("StoryPage received chapters:", chapters);
+    console.log("StoryPage received chapters from route state:", chapters);
     
-    // If no chapters are available, redirect back to home with a warning
+    // If no chapters in route state, we'll try localStorage in the component
     if (!chapters || chapters.length === 0) {
-      console.warn("No story chapters found, redirecting to home");
-      toast.error("No story chapters found. Redirecting to home page.");
-      navigate('/');
+      console.log("No chapters in route state, will try localStorage in component");
+      
+      // Check if we have chapters in localStorage before showing a warning
+      const storedChapters = localStorage.getItem('storyChapters');
+      if (!storedChapters) {
+        console.warn("No story chapters found in localStorage either, redirecting to home");
+        toast.error("No story chapters found. Redirecting to home page.");
+        navigate('/');
+      } else {
+        console.log("Found chapters in localStorage, component will use them");
+        setIsLoading(false);
+      }
     } else {
+      // If we have chapters, update localStorage with the fresh data
+      localStorage.setItem('storyChapters', JSON.stringify(chapters));
       setIsLoading(false);
     }
   }, [chapters, navigate]);
 
-  // Only render the StoryPageComponent if we have chapters and we're not in loading state
-  return !isLoading && chapters.length > 0 ? (
+  // Render the StoryPageComponent - it will handle empty chapters by checking localStorage
+  return !isLoading ? (
     <StoryPageComponent chapters={chapters} />
   ) : null;
 };
