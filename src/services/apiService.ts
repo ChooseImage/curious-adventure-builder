@@ -107,8 +107,8 @@ export const streamConversation = async (
           }
           
           controller.abort();
-          // We don't throw here to prevent the promise from rejecting
-          return new Response(); // This tells fetchEventSource to retry
+          // The key fix: don't return a Response object, just return
+          return; // No return value (void)
         },
       });
       
