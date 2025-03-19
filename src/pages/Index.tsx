@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -8,7 +9,7 @@ import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
 import { streamConversation, invokeConversation } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCw, Code } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BuildingsVisualization from "@/components/BuildingsVisualization";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -159,27 +160,38 @@ const Index = () => {
           <div className="flex-1">
             <p className="font-medium">API Error</p>
             <p className="text-sm">{apiError}</p>
-            {apiError.includes("CORS") && (
+            <div className="flex space-x-2 mt-2">
+              {apiError.includes("CORS") && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRetry}
+                  disabled={isRetrying}
+                  className="bg-white/20 hover:bg-white/40 border-white/30"
+                >
+                  {isRetrying ? (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
+                      Retrying...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-2" />
+                      Try Different Proxy
+                    </>
+                  )}
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={handleRetry}
-                disabled={isRetrying}
-                className="mt-2 bg-white/20 hover:bg-white/40 border-white/30"
+                onClick={toggleStreamDebug}
+                className="bg-white/20 hover:bg-white/40 border-white/30"
               >
-                {isRetrying ? (
-                  <>
-                    <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
-                    Retrying...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-3 w-3 mr-2" />
-                    Try Different Proxy
-                  </>
-                )}
+                <Code className="h-3 w-3 mr-2" />
+                Debug
               </Button>
-            )}
+            </div>
           </div>
           <button 
             onClick={() => setApiError(null)} 
@@ -197,14 +209,15 @@ const Index = () => {
           onClick={toggleStreamDebug}
           className="bg-black/70 text-white border-gray-700 hover:bg-black/90"
         >
-          {showStreamDebug ? "Hide" : "Show"} Debug
+          <Code className="h-4 w-4 mr-2" />
+          {showStreamDebug ? "Hide" : "Show"} Debug Panel
         </Button>
       </div>
 
       {showStreamDebug && (
         <div className="fixed top-4 right-4 w-80 max-h-[500px] overflow-auto bg-black/80 text-white p-4 rounded-lg z-50 font-mono text-xs">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-sm font-bold">Stream Response:</h3>
+            <h3 className="text-sm font-bold">API Debug Panel</h3>
             <Button 
               variant="ghost" 
               size="sm"
@@ -213,6 +226,10 @@ const Index = () => {
             >
               Hide
             </Button>
+          </div>
+          <div className="mb-3 p-2 bg-yellow-500/20 rounded text-yellow-200 text-xs">
+            <p><strong>LOCAL_MODE</strong> is enabled in apiService.ts</p>
+            <p>API calls are bypassed, using dummy data</p>
           </div>
           <div className="overflow-y-auto max-h-[450px]">
             {streamingContent.length === 0 ? (

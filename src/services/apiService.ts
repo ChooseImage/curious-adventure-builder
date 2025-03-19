@@ -1,15 +1,19 @@
+
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
 // Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b4---genv-opengpts-al23s7k26q-de.a.run.app';
 
-// List of CORS proxies to try in order
+// List of more reliable CORS proxies
 const CORS_PROXIES = [
-  'https://corsproxy.io/?',
-  'https://cors-anywhere.herokuapp.com/',
-  'https://api.allorigins.win/raw?url='
+  'https://api.allorigins.win/raw?url=',
+  'https://proxy.cors.sh/',
+  'https://cors.eu.org/'
 ];
+
+// For testing and development only
+const LOCAL_MODE = true; // Set to true to bypass API calls completely
 
 export interface StreamRequest {
   message: string;
@@ -51,23 +55,32 @@ const tryMultipleCorsProxies = async (url: string, options: RequestInit): Promis
 
 /**
  * Uses a fallback method if streaming fails
- * Attempts to get the data through a simpler request
+ * Immediately returns dummy data in local mode
  */
 const getFallbackResponse = async (message: string): Promise<any> => {
-  console.log("Using fallback dummy data");
+  console.log("Using fallback dummy data for prompt:", message);
   // Return the dummy building story as a fallback
   return tallestBuildingsStory;
 };
 
 /**
  * Streams a conversation with a prompt
- * Uses the headless/stream endpoint
+ * Uses the headless/stream endpoint or falls back to dummy data
  */
 export const streamConversation = async (
   message: string,
   onEvent: (eventType: string, data: any) => void
 ): Promise<StreamResponse> => {
   console.log(`Streaming conversation with message: ${message}`);
+  
+  // In local mode, immediately return dummy data
+  if (LOCAL_MODE) {
+    console.log("🔥 LOCAL MODE: Bypassing API call and returning dummy data");
+    onEvent('data', { content: tallestBuildingsStory });
+    return {
+      success: true
+    };
+  }
   
   try {
     // Set up request options with all possible CORS headers
