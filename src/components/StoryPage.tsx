@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -24,11 +23,9 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
   const navigate = useNavigate();
   const [localChapters, setLocalChapters] = useState(chapters);
   
-  // Convert chapterId to index (1-based to 0-based)
   const chapterIndex = parseInt(chapterId || '1') - 1;
   
   useEffect(() => {
-    // If no chapters were provided as props, try to get them from localStorage
     if (chapters.length === 0) {
       try {
         const storedChapters = localStorage.getItem('storyChapters');
@@ -47,14 +44,12 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         setTimeout(() => navigate('/'), 2000);
       }
     } else {
-      // If chapters were provided as props, store them in localStorage for future use
       console.log("Storing chapters in localStorage:", chapters);
       localStorage.setItem('storyChapters', JSON.stringify(chapters));
       setLocalChapters(chapters);
     }
   }, [chapters, navigate]);
   
-  // Get total chapters from our localChapters state
   const totalChapters = localChapters.length;
   
   useEffect(() => {
@@ -62,14 +57,12 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     console.log("Current chapter index:", chapterIndex);
     
     if (localChapters.length === 0) {
-      // This is handled in the first useEffect
     } else if (chapterIndex < 0 || chapterIndex >= localChapters.length) {
       toast.error(`Invalid chapter number. Valid range: 1-${localChapters.length}`);
       setTimeout(() => navigate('/story/1'), 2000);
     }
   }, [localChapters, chapterIndex, navigate]);
   
-  // Get current chapter data with better error handling
   const chapter = localChapters.length > 0 && chapterIndex >= 0 && chapterIndex < localChapters.length 
     ? localChapters[chapterIndex] 
     : {
@@ -78,36 +71,30 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         article: { title: 'Chapter not found', content: 'Sorry, this chapter could not be loaded.' }
       };
   
-  // Setup navigation
   const prevChapter = chapterIndex > 0 ? `/story/${chapterIndex}` : null;
   const nextChapter = chapterIndex < totalChapters - 1 ? `/story/${chapterIndex + 2}` : null;
 
-  // Handle iframe loading
   const handleIframeLoad = () => {
     setIsLoading(false);
   };
 
-  // Function to format content into alternating paragraphs
   const formatContent = (content: string) => {
     if (!content) return '';
     
-    // Split by double newlines to get paragraphs
     const paragraphs = content.split('\n\n');
     if (paragraphs.length <= 1) {
-      // Fallback to single newlines if no double newlines found
       paragraphs.splice(0, 1, ...content.split('\n'));
     }
     
     return paragraphs.map((paragraph, index) => {
-      // Alternate paragraphs between left and right alignment
       const isRight = index % 2 === 1;
       
       return (
         <div 
           key={index} 
           className={cn(
-            "mb-36 max-w-xl backdrop-blur-sm p-6 rounded-lg",
-            "bg-gray-500/10 border border-white/10",
+            "mb-36 max-w-xl backdrop-blur-xl bg-black/20 p-6 rounded-lg",
+            "border border-white/10",
             isRight ? "ml-auto" : "mr-auto"
           )}
         >
@@ -119,7 +106,6 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
 
   return (
     <div className="relative min-h-screen">
-      {/* The background HTML iframe takes full screen */}
       <div className="fixed inset-0 w-full h-full z-0">
         {chapter.html ? (
           <>
@@ -137,19 +123,18 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
           </>
         ) : (
           <div className="w-full h-full">
-            {/* Empty div for background */}
+            <div className="w-full h-full">
+              {/* Empty div for background */}
+            </div>
           </div>
         )}
       </div>
       
-      {/* Display video player if there's a gliastar video URL */}
       {chapter.gliastar && (
         <VideoPlayer videoUrl={chapter.gliastar} />
       )}
       
-      {/* Transparent article container */}
       <div className="relative z-10 pt-8 pb-16 px-4 min-h-screen flex flex-col items-center">
-        {/* Navigation header - smaller and more subtle */}
         <header className="w-full max-w-3xl mx-auto flex justify-between items-center mb-12 px-4">
           <Link to="/">
             <Button variant="outline" size="sm" className="text-white border-white/20 hover:bg-white/20 bg-black/30 hover:text-white">
@@ -163,8 +148,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
           </div>
         </header>
         
-        {/* Article content with better spacing */}
-        <article className="prose prose-lg prose-invert max-w-3xl w-full mx-auto px-6 py-8 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm">
+        <article className="prose prose-lg prose-invert max-w-3xl w-full mx-auto px-6 py-8 rounded-xl border border-white/10">
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-8 leading-tight">
             {chapter.article.title || "Chapter Title Not Available"}
           </h1>
@@ -174,7 +158,6 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
           </div>
         </article>
         
-        {/* Navigation footer - more subtle and positioned at bottom */}
         <footer className="w-full max-w-3xl mx-auto flex justify-between items-center mt-12 px-4">
           {prevChapter ? (
             <Link to={prevChapter}>
