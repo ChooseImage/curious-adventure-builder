@@ -303,11 +303,11 @@ const LoadingState: React.FC<LoadingStateProps> = ({
       />
       
       {messages.length > 0 && (
-        <div className="absolute top-0 left-0 bottom-0 w-80 z-50 pt-6 px-4">
+        <div className="absolute top-0 left-0 bottom-0 w-80 z-30 pt-6 px-4 pb-6">
           <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg h-full w-full">
             <div className="text-lg font-semibold text-white mb-2">Creating your storybook...</div>
             <ScrollArea className="h-[calc(100%-2rem)] w-full pr-2">
-              <div className="space-y-6 text-left font-mono text-xs text-white/90 pb-2">
+              <div className="space-y-6 text-left font-mono text-xs text-white/90 pb-8">
                 {messages.map((message) => (
                   <div key={message.id}>
                     <div className="whitespace-pre-wrap">{message.content}</div>
@@ -320,7 +320,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({
         </div>
       )}
       
-      <div className="absolute bottom-20 left-0 right-0 text-center space-y-4 px-4">
+      <div className="absolute bottom-20 left-0 right-0 text-center space-y-4 px-4 z-40">
         {isCompleted && storyChapters.length > 0 ? (
           <div className="bg-black/80 backdrop-blur-md p-6 rounded-lg max-w-2xl mx-auto">
             <h2 className="text-2xl font-semibold text-white mb-4">Your Storybook is Ready!</h2>

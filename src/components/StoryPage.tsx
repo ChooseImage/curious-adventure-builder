@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import VideoPlayer from './VideoPlayer';
+import { cn } from '@/lib/utils';
 
 interface StoryPageProps {
   chapters?: {
@@ -86,13 +87,34 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     setIsLoading(false);
   };
 
-  // Function to add paragraph spacing to content
+  // Function to format content into alternating paragraphs
   const formatContent = (content: string) => {
     if (!content) return '';
-    // Split by paragraphs and join with increased spacing (mb-24 instead of mb-6)
-    return content.split('\n').map((paragraph, index) => (
-      <p key={index} className="mb-24 leading-relaxed">{paragraph}</p>
-    ));
+    
+    // Split by double newlines to get paragraphs
+    const paragraphs = content.split('\n\n');
+    if (paragraphs.length <= 1) {
+      // Fallback to single newlines if no double newlines found
+      paragraphs.splice(0, 1, ...content.split('\n'));
+    }
+    
+    return paragraphs.map((paragraph, index) => {
+      // Alternate paragraphs between left and right alignment
+      const isRight = index % 2 === 1;
+      
+      return (
+        <div 
+          key={index} 
+          className={cn(
+            "mb-36 max-w-xl backdrop-blur-sm p-6 rounded-lg",
+            "bg-gray-500/10 border border-white/10",
+            isRight ? "ml-auto" : "mr-auto"
+          )}
+        >
+          <p className="leading-relaxed font-serif">{paragraph}</p>
+        </div>
+      );
+    });
   };
 
   return (
@@ -130,24 +152,24 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         {/* Navigation header - smaller and more subtle */}
         <header className="w-full max-w-3xl mx-auto flex justify-between items-center mb-12 px-4">
           <Link to="/">
-            <Button variant="outline" size="sm" className="text-white border-white/20 hover:text-white">
+            <Button variant="outline" size="sm" className="text-white border-white/20 hover:bg-white/20 bg-black/30 hover:text-white">
               <Home className="h-4 w-4 mr-2" />
               Home
             </Button>
           </Link>
           
-          <div className="text-white text-sm font-medium px-3 py-1.5 rounded-full">
+          <div className="text-white text-sm font-medium px-3 py-1.5 rounded-full bg-black/30">
             Chapter {chapterIndex + 1} of {totalChapters}
           </div>
         </header>
         
         {/* Article content with better spacing */}
-        <article className="prose prose-lg prose-invert max-w-3xl w-full mx-auto px-6 py-8 rounded-xl border border-white/10">
+        <article className="prose prose-lg prose-invert max-w-3xl w-full mx-auto px-6 py-8 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm">
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-8 leading-tight">
             {chapter.article.title || "Chapter Title Not Available"}
           </h1>
           
-          <div className="text-white/90 text-lg space-y-6 font-serif">
+          <div className="text-white/90 text-lg space-y-6 w-full">
             {formatContent(chapter.article.content)}
           </div>
         </article>
@@ -156,7 +178,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         <footer className="w-full max-w-3xl mx-auto flex justify-between items-center mt-12 px-4">
           {prevChapter ? (
             <Link to={prevChapter}>
-              <Button variant="outline" size="sm" className="text-white border-white/20 hover:text-white">
+              <Button variant="outline" size="sm" className="text-white border-white/20 bg-black/30 hover:bg-white/20 hover:text-white">
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous Chapter
               </Button>
@@ -167,14 +189,14 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
           
           {nextChapter ? (
             <Link to={nextChapter}>
-              <Button variant="outline" size="sm" className="text-white border-white/20 hover:text-white">
+              <Button variant="outline" size="sm" className="text-white border-white/20 bg-black/30 hover:bg-white/20 hover:text-white">
                 Next Chapter
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
           ) : (
             <Link to="/">
-              <Button variant="outline" size="sm" className="text-white border-white/20 hover:text-white">
+              <Button variant="outline" size="sm" className="text-white border-white/20 bg-black/30 hover:bg-white/20 hover:text-white">
                 Finish Story
                 <Home className="h-4 w-4 ml-2" />
               </Button>
