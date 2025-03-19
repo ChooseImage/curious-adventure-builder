@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -44,7 +45,7 @@ const Index = () => {
     setStreamingContent([]);
     
     try {
-      // Start streaming response
+      // Start streaming response directly using the updated API endpoint
       toast.info("Starting stream...");
       await streamConversation(prompt, (eventType, data) => {
         console.log(`Stream event received: ${eventType}`, data);

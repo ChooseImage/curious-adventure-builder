@@ -1,7 +1,8 @@
+
 import { Story } from '@/types/story';
 import { tallestBuildingsStory } from '@/utils/dummyData';
 
-// Base URL for the API - keeping this for future reference
+// Base URL for the API
 const BASE_API_URL = 'https://v0-0-43b4---genv-opengpts-al23s7k26q-de.a.run.app';
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
@@ -9,7 +10,7 @@ const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 const getProxiedUrl = (endpoint: string) => `${CORS_PROXY}${encodeURIComponent(`${BASE_API_URL}${endpoint}`)}`;
 
 export interface StreamRequest {
-  message: string; // Updated to match new API schema
+  message: string;
 }
 
 export interface StreamResponse {
@@ -28,34 +29,67 @@ export const streamConversation = async (
   console.log(`Streaming conversation with message: ${message}`);
   
   try {
-    // In production, we would use this code to call the API:
-    // const response = await fetch(`${BASE_API_URL}/headless/stream`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({ message }),
-    // });
-    
-    // if (!response.ok) {
-    //   throw new Error(`API responded with status: ${response.status}`);
-    // }
-    
-    // const reader = response.body?.getReader();
-    // if (!reader) throw new Error('Failed to get response reader');
-    
-    // // Process the stream
-    // const decoder = new TextDecoder();
-    // while (true) {
-    //   const { done, value } = await reader.read();
-    //   if (done) break;
-    //   
-    //   const chunk = decoder.decode(value);
-    //   // Process chunk and call onEvent
-    // }
+    // Attempt to call the API directly
+    // Comment this section out if you encounter CORS issues
+    try {
+      const response = await fetch(`${BASE_API_URL}/headless/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }), // Updated to only send message parameter
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API responded with status: ${response.status}`);
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('Failed to get response reader');
+      
+      // Process the stream
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        // Process event stream format (lines separated by \n\n)
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
+        
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          
+          // Parse the SSE format: "event: type\ndata: {...}"
+          const eventMatch = line.match(/^event:\s(.+)$/m);
+          const dataMatch = line.match(/^data:\s(.+)$/m);
+          
+          if (eventMatch && dataMatch) {
+            const eventType = eventMatch[1];
+            try {
+              const eventData = JSON.parse(dataMatch[1]);
+              onEvent(eventType, eventData);
+            } catch (e) {
+              console.error('Error parsing event data:', e);
+              onEvent('error', { message: 'Error parsing event data' });
+            }
+          }
+        }
+      }
+      
+      return { success: true };
+    } catch (apiError) {
+      console.warn('Direct API call failed, falling back to mock data:', apiError);
+      // Continue to the mock data fallback
+    }
     
     // Mock streaming response for development/testing purposes
-    // In a production environment, this would make an actual API call
+    // This is a fallback in case the direct API call fails (CORS issues, etc.)
     const mockStreamData = [
       { type: "metadata", data: { run_id: `run-${Date.now()}` } },
       { type: "data", data: [{ content: message, type: "human", id: `msg-${Date.now()}` }] },
@@ -108,7 +142,7 @@ export const invokeConversation = async (prompt: string): Promise<Story> => {
     originalPrompt: prompt,
     metadata: {
       ...tallestBuildingsStory.metadata,
-      // No thread_id anymore since it's not needed
+      // No thread_id needed since we're no longer using threads
     }
   };
   
