@@ -33,25 +33,18 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("Index component - storyChapters updated:", storyChapters);
-    
     if (storyChapters.length > 0) {
-      console.log("Saving story chapters to localStorage:", storyChapters);
       localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
       
       if (storyChapters[0]?.gliastar) {
         const gliastarUrl = storyChapters[0].gliastar;
-        console.log("Found gliastar URL in first chapter:", gliastarUrl);
         
         if (gliastarUrl.endsWith('.webm')) {
-          console.log("Setting .webm URL for VideoPlayer:", gliastarUrl);
           setCurrentVideoUrl(gliastarUrl);
         } else if (!gliastarUrl.startsWith('https://')) {
           const formattedUrl = `https://static-gstudio.gliacloud.com/${gliastarUrl}`;
-          console.log("Setting formatted URL for VideoPlayer:", formattedUrl);
           setCurrentVideoUrl(formattedUrl);
         } else {
-          console.log("Setting regular URL for VideoPlayer:", gliastarUrl);
           setCurrentVideoUrl(gliastarUrl);
         }
       }
@@ -59,24 +52,19 @@ const Index = () => {
   }, [storyChapters]);
 
   const logStreamContent = (eventType: string, data: any) => {
-    console.log(`Stream event received (${eventType}):`, data);
-    
     if (data.content && Array.isArray(data.content)) {
       data.content.forEach((item: any) => {
         if (item.type === "result" && Array.isArray(item.scenes)) {
-          console.log("FOUND SCENES in content array item:", item.scenes);
           setStoryChapters(item.scenes);
         }
       });
       
       if (data.content.length > 0 && Array.isArray(data.content[0].scenes)) {
-        console.log("Found scenes in first content item:", data.content[0].scenes);
         setStoryChapters(data.content[0].scenes);
       }
     }
     
     if (data.scenes && Array.isArray(data.scenes)) {
-      console.log("Direct scenes array:", data.scenes);
       setStoryChapters(data.scenes);
     }
     
@@ -93,7 +81,6 @@ const Index = () => {
   };
 
   const handleStoryChaptersUpdated = (chapters: any[]) => {
-    console.log("handleStoryChaptersUpdated called with chapters:", chapters);
     if (chapters && chapters.length > 0) {
       setStoryChapters(chapters);
       localStorage.setItem('storyChapters', JSON.stringify(chapters));
@@ -101,7 +88,6 @@ const Index = () => {
   };
 
   const handleNavigateToStory = (chapterId: number) => {
-    console.log("Navigating to story with chapters:", storyChapters);
     if (storyChapters.length > 0) {
       localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
     }
@@ -109,7 +95,6 @@ const Index = () => {
   };
 
   const handleNavigateToSketch = () => {
-    console.log("Navigating to /sketch");
     navigate('/sketch');
   };
 
@@ -123,7 +108,6 @@ const Index = () => {
       scene.data?.threejs_code || scene.threeJsCode
     );
     
-    console.log("Story has Three.js content:", hasThreeJs);
     setHasValidThreeJsContent(hasThreeJs);
   }, [activeStory, storyState]);
 
@@ -143,25 +127,21 @@ const Index = () => {
         if (data.content && Array.isArray(data.content)) {
           data.content.forEach((item: any) => {
             if (item.type === "result" && Array.isArray(item.scenes)) {
-              console.log("Setting chapters from stream callback (content array):", item.scenes);
               setStoryChapters(item.scenes);
             }
           });
           
           if (data.content.length > 0 && Array.isArray(data.content[0].scenes)) {
-            console.log("Setting chapters from first content item:", data.content[0].scenes);
             setStoryChapters(data.content[0].scenes);
           }
         }
         
         if (data.scenes && Array.isArray(data.scenes)) {
-          console.log("Setting chapters from direct scenes:", data.scenes);
           setStoryChapters(data.scenes);
         }
       });
       
       if (!streamResponse.success) {
-        console.warn("Stream unsuccessful:", streamResponse.error);
         if (streamResponse.error) {
           setApiError(streamResponse.error);
           toast.error(streamResponse.error, {
@@ -172,14 +152,12 @@ const Index = () => {
       
       const story = await invokeConversation(prompt);
       
-      console.log('Successfully loaded story:', story.title);
       setActiveStory(story);
       setStoryState('ready');
       setHasValidThreeJsContent(true);
       toast.success("Your story is ready!");
       
     } catch (error) {
-      console.error("Error processing prompt:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       setApiError(errorMessage);
       toast.error("Using fallback dummy data");
@@ -220,7 +198,6 @@ const Index = () => {
 
   const toggleStreamDebug = () => {
     setShowStreamDebug(prev => !prev);
-    console.log(`Stream debug ${!showStreamDebug ? 'enabled' : 'disabled'}`);
   };
 
   const getYoutubeId = (url: string) => {

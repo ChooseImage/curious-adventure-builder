@@ -13,18 +13,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastVideoUrlRef = useRef<string>('');
 
-  // Log when the component receives a new videoUrl prop
+  // Update when the component receives a new videoUrl prop
   useEffect(() => {
-    console.log("VideoPlayer component received videoUrl:", videoUrl);
-    
     // Check if this is actually a new URL, not just a rerender
     if (videoUrl !== lastVideoUrlRef.current) {
-      console.log("New video URL detected, updating player");
       lastVideoUrlRef.current = videoUrl;
       
       // Reset closed state when new URL is provided
       if (videoUrl && isClosed) {
-        console.log("New video URL provided, resetting closed state");
         setIsClosed(false);
       }
       
@@ -35,14 +31,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         
         // Ensure URL is properly formatted
         if (baseUrl.endsWith('.webm')) {
-          console.log("Using .webm video directly:", baseUrl);
           setFormattedUrl(baseUrl);
         } else if (!baseUrl.startsWith('https://')) {
-          console.log("Converting videoUrl format:", baseUrl);
           // If it's not a URL, assume it needs to be converted to one
           setFormattedUrl(`https://static-gstudio.gliacloud.com/${baseUrl}`);
         } else {
-          console.log("Using provided URL without changes:", baseUrl);
           setFormattedUrl(baseUrl);
         }
       } else {
@@ -53,11 +46,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
 
   // Reset video when URL changes
   useEffect(() => {
-    console.log("VideoPlayer using formatted URL:", formattedUrl);
-    
     // Reset the video element with the new source
     if (videoRef.current && formattedUrl) {
-      console.log("Reloading video with new source");
       videoRef.current.load();
     }
   }, [formattedUrl]);
@@ -93,10 +83,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         src={formattedUrl}
         autoPlay
         loop
-        muted
         playsInline
-        onError={(e) => console.error("Video error:", e)}
-        onLoadedData={() => console.log("Video loaded successfully:", formattedUrl)}
       />
     </div>
   );

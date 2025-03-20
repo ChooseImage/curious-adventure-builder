@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { cn } from '@/lib/utils';
@@ -53,8 +54,6 @@ const LoadingState: React.FC<LoadingStateProps> = ({
 
   useEffect(() => {
     if (storyChapters.length > 0) {
-      console.log('LoadingState - Updated storyChapters:', storyChapters);
-      
       if (onStoryChaptersUpdated) {
         onStoryChaptersUpdated(storyChapters);
       }
@@ -72,29 +71,20 @@ const LoadingState: React.FC<LoadingStateProps> = ({
     const latestItem = streamingContent[streamingContent.length - 1];
     if (!latestItem || !latestItem.data) return;
 
-    console.log("Processing latestItem:", latestItem);
-
     if (latestItem.data.content && Array.isArray(latestItem.data.content)) {
       latestItem.data.content.forEach((contentItem: any) => {
-        console.log("Content item:", contentItem);
-        
         if (contentItem.type === "result" && Array.isArray(contentItem.scenes)) {
-          console.log("FOUND RESULT WITH SCENES:", contentItem.scenes);
-          
           const processedScenes = contentItem.scenes.map((scene: any) => {
             if (scene.gliastar) {
               if (scene.gliastar.endsWith('.webm')) {
-                console.log(`Found .webm file for scene: ${scene.article?.title || 'Untitled'}`);
                 // .webm URLs are used directly
               } else if (!scene.gliastar.startsWith('https://')) {
-                console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
                 scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
               }
             }
             return scene;
           });
           
-          console.log("Processed scenes with updated gliastar URLs:", processedScenes);
           setStoryChapters(processedScenes);
           setIsCompleted(true);
         }
@@ -102,22 +92,17 @@ const LoadingState: React.FC<LoadingStateProps> = ({
     }
 
     if (latestItem.type === "result" && latestItem.data.scenes && Array.isArray(latestItem.data.scenes)) {
-      console.log("Direct result scenes:", latestItem.data.scenes);
-      
       const processedScenes = latestItem.data.scenes.map((scene: any) => {
         if (scene.gliastar) {
           if (scene.gliastar.endsWith('.webm')) {
-            console.log(`Found .webm file for scene: ${scene.article?.title || 'Untitled'}`);
             // .webm URLs are used directly
           } else if (!scene.gliastar.startsWith('https://')) {
-            console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
             scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
           }
         }
         return scene;
       });
       
-      console.log("Processed scenes with updated gliastar URLs:", processedScenes);
       setStoryChapters(processedScenes);
       setIsCompleted(true);
     }
@@ -157,31 +142,22 @@ const LoadingState: React.FC<LoadingStateProps> = ({
     if (latestItem.data.content && Array.isArray(latestItem.data.content) && latestItem.data.content.length > 0) {
       const firstItem = latestItem.data.content[0];
       if (firstItem && Array.isArray(firstItem.scenes)) {
-        console.log("Found scenes in first content item:", firstItem.scenes);
-        
         const processedScenes = firstItem.scenes.map((scene: any) => {
           if (scene.gliastar) {
             if (scene.gliastar.endsWith('.webm')) {
-              console.log(`Found .webm file for scene: ${scene.article?.title || 'Untitled'}`);
               // .webm URLs are used directly
             } else if (!scene.gliastar.startsWith('https://')) {
-              console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
               scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
             }
           }
           return scene;
         });
         
-        console.log("Processed scenes with updated gliastar URLs:", processedScenes);
         setStoryChapters(processedScenes);
         setIsCompleted(true);
       }
     }
   }, [streamingContent, onStoryChaptersUpdated]);
-
-  useEffect(() => {
-    console.log('UPDATED storyChapters:', storyChapters);
-  }, [storyChapters]);
 
   useEffect(() => {
     if (!containerRef.current) return;
