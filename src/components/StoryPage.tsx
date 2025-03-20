@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -32,7 +33,19 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         if (storedChapters) {
           const parsedChapters = JSON.parse(storedChapters);
           console.log("Retrieved chapters from localStorage:", parsedChapters);
-          setLocalChapters(parsedChapters);
+          
+          // Ensure all gliastar entries are properly formatted URLs
+          const processedChapters = parsedChapters.map((chapter: any) => {
+            if (chapter.gliastar && !chapter.gliastar.startsWith('https://')) {
+              console.log(`Converting gliastar format for chapter: ${chapter.article?.title || 'Untitled'}`);
+              // If it's not a URL, assume it needs to be converted to one
+              chapter.gliastar = `https://static-gstudio.gliacloud.com/${chapter.gliastar}`;
+            }
+            return chapter;
+          });
+          
+          console.log("Processed chapters with updated gliastar URLs:", processedChapters);
+          setLocalChapters(processedChapters);
         } else {
           console.warn("No chapters found in localStorage");
           toast.error("No story chapters found. Returning to home page.");
@@ -44,9 +57,19 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         setTimeout(() => navigate('/'), 2000);
       }
     } else {
-      console.log("Storing chapters in localStorage:", chapters);
-      localStorage.setItem('storyChapters', JSON.stringify(chapters));
-      setLocalChapters(chapters);
+      // Ensure all gliastar entries are properly formatted URLs
+      const processedChapters = chapters.map((chapter) => {
+        if (chapter.gliastar && !chapter.gliastar.startsWith('https://')) {
+          console.log(`Converting gliastar format for chapter: ${chapter.article?.title || 'Untitled'}`);
+          // If it's not a URL, assume it needs to be converted to one
+          chapter.gliastar = `https://static-gstudio.gliacloud.com/${chapter.gliastar}`;
+        }
+        return chapter;
+      });
+      
+      console.log("Storing chapters in localStorage with updated gliastar URLs:", processedChapters);
+      localStorage.setItem('storyChapters', JSON.stringify(processedChapters));
+      setLocalChapters(processedChapters);
     }
   }, [chapters, navigate]);
   
@@ -57,6 +80,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     console.log("Current chapter index:", chapterIndex);
     
     if (localChapters.length === 0) {
+      // Already handled in the previous useEffect
     } else if (chapterIndex < 0 || chapterIndex >= localChapters.length) {
       toast.error(`Invalid chapter number. Valid range: 1-${localChapters.length}`);
       setTimeout(() => navigate('/story/1'), 2000);
@@ -103,6 +127,13 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
       );
     });
   };
+
+  // Log the gliastar URL to verify format
+  useEffect(() => {
+    if (chapter && chapter.gliastar) {
+      console.log("Current chapter gliastar URL:", chapter.gliastar);
+    }
+  }, [chapter]);
 
   return (
     <div className="relative min-h-screen">

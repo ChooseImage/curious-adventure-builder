@@ -80,7 +80,17 @@ const LoadingState: React.FC<LoadingStateProps> = ({
         
         if (contentItem.type === "result" && Array.isArray(contentItem.scenes)) {
           console.log("FOUND RESULT WITH SCENES:", contentItem.scenes);
-          setStoryChapters(contentItem.scenes);
+          
+          const processedScenes = contentItem.scenes.map((scene: any) => {
+            if (scene.gliastar && !scene.gliastar.startsWith('https://')) {
+              console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
+              scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+            }
+            return scene;
+          });
+          
+          console.log("Processed scenes with updated gliastar URLs:", processedScenes);
+          setStoryChapters(processedScenes);
           setIsCompleted(true);
         }
       });
@@ -88,7 +98,17 @@ const LoadingState: React.FC<LoadingStateProps> = ({
 
     if (latestItem.type === "result" && latestItem.data.scenes && Array.isArray(latestItem.data.scenes)) {
       console.log("Direct result scenes:", latestItem.data.scenes);
-      setStoryChapters(latestItem.data.scenes);
+      
+      const processedScenes = latestItem.data.scenes.map((scene: any) => {
+        if (scene.gliastar && !scene.gliastar.startsWith('https://')) {
+          console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
+          scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+        }
+        return scene;
+      });
+      
+      console.log("Processed scenes with updated gliastar URLs:", processedScenes);
+      setStoryChapters(processedScenes);
       setIsCompleted(true);
     }
 
@@ -128,7 +148,17 @@ const LoadingState: React.FC<LoadingStateProps> = ({
       const firstItem = latestItem.data.content[0];
       if (firstItem && Array.isArray(firstItem.scenes)) {
         console.log("Found scenes in first content item:", firstItem.scenes);
-        setStoryChapters(firstItem.scenes);
+        
+        const processedScenes = firstItem.scenes.map((scene: any) => {
+          if (scene.gliastar && !scene.gliastar.startsWith('https://')) {
+            console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
+            scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+          }
+          return scene;
+        });
+        
+        console.log("Processed scenes with updated gliastar URLs:", processedScenes);
+        setStoryChapters(processedScenes);
         setIsCompleted(true);
       }
     }

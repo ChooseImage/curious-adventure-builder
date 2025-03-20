@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Maximize2, Minimize2 } from 'lucide-react';
 
 interface VideoPlayerProps {
@@ -9,8 +9,22 @@ interface VideoPlayerProps {
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
+  const [formattedUrl, setFormattedUrl] = useState(videoUrl);
 
-  if (isClosed) return null;
+  useEffect(() => {
+    console.log("VideoPlayer received URL:", videoUrl);
+    
+    // Ensure URL is properly formatted
+    if (videoUrl && !videoUrl.startsWith('https://')) {
+      console.log("Converting videoUrl format");
+      // If it's not a URL, assume it needs to be converted to one
+      setFormattedUrl(`https://static-gstudio.gliacloud.com/${videoUrl}`);
+    } else {
+      setFormattedUrl(videoUrl);
+    }
+  }, [videoUrl]);
+
+  if (isClosed || !formattedUrl) return null;
 
   return (
     <div 
@@ -37,7 +51,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       
       <video
         className="w-full h-full object-cover"
-        src={videoUrl}
+        src={formattedUrl}
         autoPlay
         loop
         muted
