@@ -8,11 +8,11 @@ import { tallestBuildingsStory } from "@/utils/dummyData";
 import { toast } from "sonner";
 import { streamConversation, invokeConversation } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ExternalLink, RefreshCw, Code, Settings, Book } from "lucide-react";
+import { AlertCircle, ExternalLink, RefreshCw, Code, Book } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import BuildingsVisualization from "@/components/BuildingsVisualization";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import StreamDebugger from "@/components/StreamDebugger";
+import { useStoryChapters } from "@/hooks/useStoryChapters";
 
 const API_CONFIG = {
   LOCAL_MODE: false,
@@ -21,6 +21,8 @@ const API_CONFIG = {
 };
 
 const Index = () => {
+  const { chapters: storyChapters, updateChapters, getCurrentVideoUrl } = useStoryChapters();
+  
   const [storyState, setStoryState] = useState<StoryState>('idle');
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [hasValidThreeJsContent, setHasValidThreeJsContent] = useState(false);
@@ -28,34 +30,12 @@ const Index = () => {
   const [showStreamDebug, setShowStreamDebug] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
-  const [storyChapters, setStoryChapters] = useState<any[]>([]);
-  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>("");
   const navigate = useNavigate();
+  
+  const currentVideoUrl = getCurrentVideoUrl(0, true);
 
   useEffect(() => {
-    console.log("Index component - storyChapters updated:", storyChapters);
-    
-    if (storyChapters.length > 0) {
-      console.log("Saving story chapters to localStorage:", storyChapters);
-      localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
-      
-      if (storyChapters[0]?.gliastar) {
-        const gliastarUrl = storyChapters[0].gliastar;
-        console.log("Found gliastar URL in first chapter:", gliastarUrl);
-        
-        if (gliastarUrl.endsWith('.webm')) {
-          console.log("Setting .webm URL for VideoPlayer:", gliastarUrl);
-          setCurrentVideoUrl(gliastarUrl);
-        } else if (!gliastarUrl.startsWith('https://')) {
-          const formattedUrl = `https://static-gstudio.gliacloud.com/${gliastarUrl}`;
-          console.log("Setting formatted URL for VideoPlayer:", formattedUrl);
-          setCurrentVideoUrl(formattedUrl);
-        } else {
-          console.log("Setting regular URL for VideoPlayer:", gliastarUrl);
-          setCurrentVideoUrl(gliastarUrl);
-        }
-      }
-    }
+    console.log("Index component - storyChapters from hook:", storyChapters);
   }, [storyChapters]);
 
   const logStreamContent = (eventType: string, data: any) => {
@@ -65,19 +45,19 @@ const Index = () => {
       data.content.forEach((item: any) => {
         if (item.type === "result" && Array.isArray(item.scenes)) {
           console.log("FOUND SCENES in content array item:", item.scenes);
-          setStoryChapters(item.scenes);
+          updateChapters(item.scenes);
         }
       });
       
       if (data.content.length > 0 && Array.isArray(data.content[0].scenes)) {
         console.log("Found scenes in first content item:", data.content[0].scenes);
-        setStoryChapters(data.content[0].scenes);
+        updateChapters(data.content[0].scenes);
       }
     }
     
     if (data.scenes && Array.isArray(data.scenes)) {
       console.log("Direct scenes array:", data.scenes);
-      setStoryChapters(data.scenes);
+      updateChapters(data.scenes);
     }
     
     setStreamingContent(prev => {
@@ -95,17 +75,13 @@ const Index = () => {
   const handleStoryChaptersUpdated = (chapters: any[]) => {
     console.log("handleStoryChaptersUpdated called with chapters:", chapters);
     if (chapters && chapters.length > 0) {
-      setStoryChapters(chapters);
-      localStorage.setItem('storyChapters', JSON.stringify(chapters));
+      updateChapters(chapters);
     }
   };
 
   const handleNavigateToStory = (chapterId: number) => {
     console.log("Navigating to story with chapters:", storyChapters);
-    if (storyChapters.length > 0) {
-      localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
-    }
-    navigate(`/story/${chapterId}`, { state: { chapters: storyChapters } });
+    navigate(`/story/${chapterId}`);
   };
 
   const handleNavigateToSketch = () => {
@@ -144,19 +120,19 @@ const Index = () => {
           data.content.forEach((item: any) => {
             if (item.type === "result" && Array.isArray(item.scenes)) {
               console.log("Setting chapters from stream callback (content array):", item.scenes);
-              setStoryChapters(item.scenes);
+              updateChapters(item.scenes);
             }
           });
           
           if (data.content.length > 0 && Array.isArray(data.content[0].scenes)) {
             console.log("Setting chapters from first content item:", data.content[0].scenes);
-            setStoryChapters(data.content[0].scenes);
+            updateChapters(data.content[0].scenes);
           }
         }
         
         if (data.scenes && Array.isArray(data.scenes)) {
           console.log("Setting chapters from direct scenes:", data.scenes);
-          setStoryChapters(data.scenes);
+          updateChapters(data.scenes);
         }
       });
       
@@ -235,7 +211,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background relative">
-      {storyState === 'ready' && <VideoPlayer videoUrl={currentVideoUrl} />}
+      {storyState === 'ready' && currentVideoUrl && (
+        <VideoPlayer key={`index-video-${currentVideoUrl}`} videoUrl={currentVideoUrl} />
+      )}
 
       <StreamDebugger 
         streamingContent={streamingContent} 
