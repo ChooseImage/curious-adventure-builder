@@ -39,7 +39,7 @@ export function useStoryChapters() {
     staleTime: 1000 * 60 * 30, // Consider data fresh for 30 minutes
   });
 
-  // Mutation to update chapters
+  // Mutation to update chapters - now returns a Promise
   const updateChaptersMutation = useMutation({
     mutationFn: (newChapters: StoryChapter[]) => {
       console.log("useStoryChapters: Updating chapters:", newChapters);
@@ -53,7 +53,8 @@ export function useStoryChapters() {
       // Save to localStorage
       localStorage.setItem("storyChapters", JSON.stringify(chaptersWithTimestamp));
       
-      return chaptersWithTimestamp;
+      // Return Promise to satisfy MutationFunction type
+      return Promise.resolve(chaptersWithTimestamp);
     },
     onSuccess: (updatedChapters) => {
       // Update the query cache with new data

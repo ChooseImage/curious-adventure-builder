@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import ChatInput from "@/components/ChatInput";
 import LoadingState from "@/components/LoadingState";
@@ -109,7 +110,8 @@ const Index = () => {
     setIsRetrying(false);
     toast.info("Generating your story...");
     setStreamingContent([]);
-    setStoryChapters([]);
+    // Fix: Remove this line as there's no setStoryChapters function
+    // setStoryChapters([]);
     
     try {
       toast.info("Starting stream...");
