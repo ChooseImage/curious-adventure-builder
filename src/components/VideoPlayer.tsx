@@ -44,11 +44,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
     }
   }, [videoUrl, isClosed]);
 
-  // Reset video when URL changes
+  // Reset video and ensure autoplay when URL changes
   useEffect(() => {
     // Reset the video element with the new source
     if (videoRef.current && formattedUrl) {
       videoRef.current.load();
+      
+      // Ensure video plays after loading
+      const playPromise = videoRef.current.play();
+      
+      // Handle potential play() rejection (browsers may block autoplay)
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          // Auto-play was prevented
+          // Show a UI element to let the user manually start playback
+        });
+      }
     }
   }, [formattedUrl]);
 
