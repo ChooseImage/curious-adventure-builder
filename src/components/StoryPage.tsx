@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -6,52 +5,84 @@ import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import VideoPlayer from './VideoPlayer';
 import { cn } from '@/lib/utils';
-import { useStoryChapters, StoryChapter } from '@/hooks/useStoryChapters';
 
 interface StoryPageProps {
-  chapters?: StoryChapter[];
+  chapters?: {
+    html: string;
+    gliastar: string;  // This contains the video URL
+    article: {
+      title: string;
+      content: string;
+    };
+  }[];
 }
 
 const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
   const { chapterId } = useParams<{ chapterId: string }>();
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { getCurrentVideoUrl } = useStoryChapters();
+  const [localChapters, setLocalChapters] = useState(chapters);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
   
-  // Track chapters locally to use props if available, falling back to global state
-  const [localChapters, setLocalChapters] = useState<StoryChapter[]>(chapters);
-  
-  // Current chapter index (0-based internally, 1-based in URL)
   const chapterIndex = parseInt(chapterId || '1') - 1;
   
-  // Get video URL from the useStoryChapters hook with force refresh
-  const videoUrl = getCurrentVideoUrl(chapterIndex, true);
-  
-  // Force re-render when chapter changes
-  const [videoKey, setVideoKey] = useState<string>(`chapter-${chapterIndex}-${Date.now()}`);
-  
   useEffect(() => {
-    console.log("StoryPage component loaded/updated");
-    console.log("Current chapter index:", chapterIndex);
-    console.log("Received chapters prop:", chapters);
+    console.log("StoryPage received new chapters prop:", chapters);
     
     if (chapters.length > 0) {
-      console.log("Using chapters from props");
+      console.log("Updating localChapters with new chapters from props");
       setLocalChapters(chapters);
+      // Store the latest chapters in localStorage
+      localStorage.setItem('storyChapters', JSON.stringify(chapters));
     }
-    
-    // Update video key to force re-render of VideoPlayer
-    setVideoKey(`chapter-${chapterIndex}-${Date.now()}`);
-    setIsLoading(false);
-  }, [chapters, chapterIndex]);
+  }, [chapters]);
+  
+  useEffect(() => {
+    if (chapters.length === 0) {
+      try {
+        const storedChapters = localStorage.getItem('storyChapters');
+        if (storedChapters) {
+          const parsedChapters = JSON.parse(storedChapters);
+          console.log("Retrieved chapters from localStorage:", parsedChapters);
+          
+          // Process gliastar URLs to ensure they're properly formatted
+          const processedChapters = parsedChapters.map((chapter: any) => {
+            if (chapter.gliastar) {
+              if (chapter.gliastar.endsWith('.webm')) {
+                console.log(`Found .webm file for chapter: ${chapter.article?.title || 'Untitled'}`);
+                // .webm URLs are used directly
+              } else if (!chapter.gliastar.startsWith('https://')) {
+                console.log(`Converting gliastar format for chapter: ${chapter.article?.title || 'Untitled'}`);
+                // If it's not a URL, convert it
+                chapter.gliastar = `https://static-gstudio.gliacloud.com/${chapter.gliastar}`;
+              }
+            }
+            return chapter;
+          });
+          
+          console.log("Processed chapters with updated gliastar URLs:", processedChapters);
+          setLocalChapters(processedChapters);
+        } else {
+          console.warn("No chapters found in localStorage");
+          toast.error("No story chapters found. Returning to home page.");
+          setTimeout(() => navigate('/'), 2000);
+        }
+      } catch (error) {
+        console.error("Error retrieving chapters from localStorage:", error);
+        toast.error("Error loading story. Returning to home page.");
+        setTimeout(() => navigate('/'), 2000);
+      }
+    }
+  }, [chapters, navigate]);
   
   const totalChapters = localChapters.length;
   
   useEffect(() => {
     console.log("StoryPage component with localChapters:", localChapters);
+    console.log("Current chapter index:", chapterIndex);
     
     if (localChapters.length === 0) {
-      // Already handled in the wrapper component
+      // Already handled in the previous useEffect
     } else if (chapterIndex < 0 || chapterIndex >= localChapters.length) {
       toast.error(`Invalid chapter number. Valid range: 1-${localChapters.length}`);
       setTimeout(() => navigate('/story/1'), 2000);
@@ -67,10 +98,15 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
       };
   
   useEffect(() => {
-    if (videoUrl) {
-      console.log("Video URL for current chapter:", videoUrl);
+    if (chapter && chapter.gliastar) {
+      console.log("Updating current video URL from chapter:", chapter.gliastar);
+      // Generate a unique key with timestamp to force VideoPlayer to reload
+      const timestamp = new Date().getTime();
+      setCurrentVideoUrl(`${chapter.gliastar}?t=${timestamp}`);
+    } else {
+      setCurrentVideoUrl('');
     }
-  }, [videoUrl]);
+  }, [chapter]);
   
   const prevChapter = chapterIndex > 0 ? `/story/${chapterIndex}` : null;
   const nextChapter = chapterIndex < totalChapters - 1 ? `/story/${chapterIndex + 2}` : null;
@@ -105,6 +141,12 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     });
   };
 
+  useEffect(() => {
+    if (chapter && chapter.gliastar) {
+      console.log("Current chapter gliastar URL:", chapter.gliastar);
+    }
+  }, [chapter]);
+
   return (
     <div className="relative min-h-screen">
       <div className="fixed inset-0 w-full h-full z-0">
@@ -131,8 +173,8 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         )}
       </div>
       
-      {videoUrl && (
-        <VideoPlayer key={videoKey} videoUrl={videoUrl} />
+      {currentVideoUrl && (
+        <VideoPlayer key={currentVideoUrl} videoUrl={currentVideoUrl} />
       )}
       
       <div className="relative z-10 pt-8 pb-16 px-4 min-h-screen flex flex-col items-center">

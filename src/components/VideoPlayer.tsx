@@ -12,87 +12,51 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const [formattedUrl, setFormattedUrl] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastVideoUrlRef = useRef<string>('');
-  const mountedRef = useRef<boolean>(false);
-
-  // Initialize the mounted ref
-  useEffect(() => {
-    mountedRef.current = true;
-    console.log("VideoPlayer mounted with URL:", videoUrl);
-    
-    // Clean up on unmount
-    return () => {
-      mountedRef.current = false;
-      console.log("VideoPlayer unmounted");
-    };
-  }, []);
 
   // Log when the component receives a new videoUrl prop
   useEffect(() => {
-    if (!mountedRef.current) return;
+    console.log("VideoPlayer component received videoUrl:", videoUrl);
     
-    console.log("VideoPlayer received videoUrl:", videoUrl);
-    console.log("Previous URL was:", lastVideoUrlRef.current);
-    
-    // Check if the base URL has changed (ignoring query params)
-    const currentBase = videoUrl?.split('?')[0] || '';
-    const lastBase = lastVideoUrlRef.current?.split('?')[0] || '';
-    
-    if (currentBase !== lastBase) {
-      console.log("Base URL changed from", lastBase, "to", currentBase);
+    // Check if this is actually a new URL, not just a rerender
+    if (videoUrl !== lastVideoUrlRef.current) {
+      console.log("New video URL detected, updating player");
       lastVideoUrlRef.current = videoUrl;
       
-      // Reset closed state when URL changes
+      // Reset closed state when new URL is provided
       if (videoUrl && isClosed) {
         console.log("New video URL provided, resetting closed state");
         setIsClosed(false);
       }
       
       // Process the URL
-      processVideoUrl(videoUrl);
-    } else if (videoUrl !== lastVideoUrlRef.current) {
-      // Same base URL but different query params (like timestamp)
-      console.log("Same base URL but query params changed, updating reference");
-      lastVideoUrlRef.current = videoUrl;
-      
-      // Just update the formatted URL directly without changing closed state
-      setFormattedUrl(currentBase);
+      if (videoUrl) {
+        // Remove any query parameters (like timestamps) that we may have added
+        const baseUrl = videoUrl.split('?')[0];
+        
+        // Ensure URL is properly formatted
+        if (baseUrl.endsWith('.webm')) {
+          console.log("Using .webm video directly:", baseUrl);
+          setFormattedUrl(baseUrl);
+        } else if (!baseUrl.startsWith('https://')) {
+          console.log("Converting videoUrl format:", baseUrl);
+          // If it's not a URL, assume it needs to be converted to one
+          setFormattedUrl(`https://static-gstudio.gliacloud.com/${baseUrl}`);
+        } else {
+          console.log("Using provided URL without changes:", baseUrl);
+          setFormattedUrl(baseUrl);
+        }
+      } else {
+        setFormattedUrl('');
+      }
     }
   }, [videoUrl, isClosed]);
 
-  // Process the video URL
-  const processVideoUrl = (url: string) => {
-    if (!url) {
-      setFormattedUrl('');
-      return;
-    }
-    
-    // Remove any query parameters (like timestamps)
-    const baseUrl = url.split('?')[0];
-    
-    console.log("Processing video URL:", baseUrl);
-    
-    // Ensure URL is properly formatted
-    if (baseUrl.endsWith('.webm')) {
-      console.log("Using .webm video directly:", baseUrl);
-      setFormattedUrl(baseUrl);
-    } else if (!baseUrl.startsWith('https://')) {
-      console.log("Converting videoUrl format:", baseUrl);
-      // If it's not a URL, assume it needs to be converted to one
-      setFormattedUrl(`https://static-gstudio.gliacloud.com/${baseUrl}`);
-    } else {
-      console.log("Using provided URL without changes:", baseUrl);
-      setFormattedUrl(baseUrl);
-    }
-  };
-
   // Reset video when URL changes
   useEffect(() => {
-    if (!formattedUrl || !mountedRef.current) return;
-    
     console.log("VideoPlayer using formatted URL:", formattedUrl);
     
     // Reset the video element with the new source
-    if (videoRef.current) {
+    if (videoRef.current && formattedUrl) {
       console.log("Reloading video with new source");
       videoRef.current.load();
     }
