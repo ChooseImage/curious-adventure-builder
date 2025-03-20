@@ -9,23 +9,29 @@ interface VideoPlayerProps {
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
-  const [formattedUrl, setFormattedUrl] = useState(videoUrl);
+  const [formattedUrl, setFormattedUrl] = useState('');
 
   useEffect(() => {
     console.log("VideoPlayer received URL:", videoUrl);
     
     // Ensure URL is properly formatted
     if (videoUrl && videoUrl.endsWith('.webm')) {
-      console.log("Using .webm video directly");
+      console.log("Using .webm video directly:", videoUrl);
       setFormattedUrl(videoUrl);
     } else if (videoUrl && !videoUrl.startsWith('https://')) {
-      console.log("Converting videoUrl format");
+      console.log("Converting videoUrl format:", videoUrl);
       // If it's not a URL, assume it needs to be converted to one
       setFormattedUrl(`https://static-gstudio.gliacloud.com/${videoUrl}`);
     } else {
+      console.log("Using provided URL without changes:", videoUrl);
       setFormattedUrl(videoUrl);
     }
   }, [videoUrl]);
+
+  // Debug the current formatted URL
+  useEffect(() => {
+    console.log("VideoPlayer using formatted URL:", formattedUrl);
+  }, [formattedUrl]);
 
   if (isClosed || !formattedUrl) return null;
 
@@ -59,6 +65,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
         loop
         muted
         playsInline
+        onError={(e) => console.error("Video error:", e)}
       />
     </div>
   );
