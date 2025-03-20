@@ -29,6 +29,7 @@ const Index = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [storyChapters, setStoryChapters] = useState<any[]>([]);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +38,23 @@ const Index = () => {
     if (storyChapters.length > 0) {
       console.log("Saving story chapters to localStorage:", storyChapters);
       localStorage.setItem('storyChapters', JSON.stringify(storyChapters));
+      
+      if (storyChapters[0]?.gliastar) {
+        const gliastarUrl = storyChapters[0].gliastar;
+        console.log("Found gliastar URL in first chapter:", gliastarUrl);
+        
+        if (gliastarUrl.endsWith('.webm')) {
+          console.log("Setting .webm URL for VideoPlayer:", gliastarUrl);
+          setCurrentVideoUrl(gliastarUrl);
+        } else if (!gliastarUrl.startsWith('https://')) {
+          const formattedUrl = `https://static-gstudio.gliacloud.com/${gliastarUrl}`;
+          console.log("Setting formatted URL for VideoPlayer:", formattedUrl);
+          setCurrentVideoUrl(formattedUrl);
+        } else {
+          console.log("Setting regular URL for VideoPlayer:", gliastarUrl);
+          setCurrentVideoUrl(gliastarUrl);
+        }
+      }
     }
   }, [storyChapters]);
 
@@ -217,7 +235,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background relative">
-      {storyState === 'ready' && <VideoPlayer videoUrl={videoUrl} />}
+      {storyState === 'ready' && <VideoPlayer videoUrl={currentVideoUrl} />}
 
       <StreamDebugger 
         streamingContent={streamingContent} 
