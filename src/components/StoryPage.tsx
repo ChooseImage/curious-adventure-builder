@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
@@ -23,6 +23,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const [localChapters, setLocalChapters] = useState(chapters);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
   
   const chapterIndex = parseInt(chapterId || '1') - 1;
   
@@ -97,6 +98,7 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     }
   }, [localChapters, chapterIndex, navigate]);
   
+  // Extract the current chapter
   const chapter = localChapters.length > 0 && chapterIndex >= 0 && chapterIndex < localChapters.length 
     ? localChapters[chapterIndex] 
     : {
@@ -104,6 +106,18 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         gliastar: '',
         article: { title: 'Chapter not found', content: 'Sorry, this chapter could not be loaded.' }
       };
+  
+  // Update current video URL when chapter changes
+  useEffect(() => {
+    if (chapter && chapter.gliastar) {
+      console.log("Updating current video URL from chapter:", chapter.gliastar);
+      // Generate a unique key with timestamp to force VideoPlayer to reload
+      const timestamp = new Date().getTime();
+      setCurrentVideoUrl(`${chapter.gliastar}?t=${timestamp}`);
+    } else {
+      setCurrentVideoUrl('');
+    }
+  }, [chapter]);
   
   const prevChapter = chapterIndex > 0 ? `/story/${chapterIndex}` : null;
   const nextChapter = chapterIndex < totalChapters - 1 ? `/story/${chapterIndex + 2}` : null;
@@ -171,8 +185,8 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         )}
       </div>
       
-      {chapter.gliastar && (
-        <VideoPlayer videoUrl={chapter.gliastar} />
+      {currentVideoUrl && (
+        <VideoPlayer key={currentVideoUrl} videoUrl={currentVideoUrl} />
       )}
       
       <div className="relative z-10 pt-8 pb-16 px-4 min-h-screen flex flex-col items-center">

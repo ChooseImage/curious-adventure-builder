@@ -11,35 +11,40 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const [isClosed, setIsClosed] = useState(false);
   const [formattedUrl, setFormattedUrl] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
-  const previousUrlRef = useRef<string>('');
 
   // Log when the component receives a new videoUrl prop
   useEffect(() => {
-    console.log("VideoPlayer component received new videoUrl:", videoUrl);
-    console.log("Previous URL was:", previousUrlRef.current);
+    console.log("VideoPlayer component received videoUrl:", videoUrl);
     
-    if (videoUrl !== previousUrlRef.current) {
-      console.log("URL has changed, updating...");
-      previousUrlRef.current = videoUrl;
+    // Reset closed state when new URL is provided
+    if (videoUrl && isClosed) {
+      console.log("New video URL provided, resetting closed state");
+      setIsClosed(false);
+    }
+    
+    // Process the URL
+    if (videoUrl) {
+      // Remove any query parameters (like timestamps) that we may have added
+      const baseUrl = videoUrl.split('?')[0];
       
       // Ensure URL is properly formatted
-      if (videoUrl && videoUrl.endsWith('.webm')) {
-        console.log("Using .webm video directly:", videoUrl);
-        setFormattedUrl(videoUrl);
-      } else if (videoUrl && !videoUrl.startsWith('https://')) {
-        console.log("Converting videoUrl format:", videoUrl);
+      if (baseUrl.endsWith('.webm')) {
+        console.log("Using .webm video directly:", baseUrl);
+        setFormattedUrl(baseUrl);
+      } else if (!baseUrl.startsWith('https://')) {
+        console.log("Converting videoUrl format:", baseUrl);
         // If it's not a URL, assume it needs to be converted to one
-        setFormattedUrl(`https://static-gstudio.gliacloud.com/${videoUrl}`);
+        setFormattedUrl(`https://static-gstudio.gliacloud.com/${baseUrl}`);
       } else {
-        console.log("Using provided URL without changes:", videoUrl);
-        setFormattedUrl(videoUrl);
+        console.log("Using provided URL without changes:", baseUrl);
+        setFormattedUrl(baseUrl);
       }
     } else {
-      console.log("URL is the same, no update needed");
+      setFormattedUrl('');
     }
-  }, [videoUrl]);
+  }, [videoUrl, isClosed]);
 
-  // Debug the current formatted URL and reload video if needed
+  // Reset video when URL changes
   useEffect(() => {
     console.log("VideoPlayer using formatted URL:", formattedUrl);
     
@@ -49,14 +54,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
       videoRef.current.load();
     }
   }, [formattedUrl]);
-
-  // Reset closed state if a new URL is provided
-  useEffect(() => {
-    if (videoUrl && isClosed) {
-      console.log("New video URL provided, resetting closed state");
-      setIsClosed(false);
-    }
-  }, [videoUrl, isClosed]);
 
   if (isClosed || !formattedUrl) return null;
 

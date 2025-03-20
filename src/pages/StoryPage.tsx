@@ -33,7 +33,12 @@ const StoryPage = () => {
       }
     } else {
       // If we have chapters, update localStorage with the fresh data
-      localStorage.setItem('storyChapters', JSON.stringify(chapters));
+      // Force a timestamp to ensure data is treated as new
+      const chaptersWithTimestamp = chapters.map((chapter: any) => ({
+        ...chapter,
+        _timestamp: new Date().getTime()
+      }));
+      localStorage.setItem('storyChapters', JSON.stringify(chaptersWithTimestamp));
       setIsLoading(false);
     }
   }, [chapters, navigate]);
