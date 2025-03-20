@@ -15,7 +15,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
     console.log("VideoPlayer received URL:", videoUrl);
     
     // Ensure URL is properly formatted
-    if (videoUrl && !videoUrl.startsWith('https://')) {
+    if (videoUrl && videoUrl.endsWith('.webm')) {
+      console.log("Using .webm video directly");
+      setFormattedUrl(videoUrl);
+    } else if (videoUrl && !videoUrl.startsWith('https://')) {
       console.log("Converting videoUrl format");
       // If it's not a URL, assume it needs to be converted to one
       setFormattedUrl(`https://static-gstudio.gliacloud.com/${videoUrl}`);

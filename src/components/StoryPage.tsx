@@ -34,12 +34,17 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
           const parsedChapters = JSON.parse(storedChapters);
           console.log("Retrieved chapters from localStorage:", parsedChapters);
           
-          // Ensure all gliastar entries are properly formatted URLs
+          // Process gliastar URLs to ensure they're properly formatted
           const processedChapters = parsedChapters.map((chapter: any) => {
-            if (chapter.gliastar && !chapter.gliastar.startsWith('https://')) {
-              console.log(`Converting gliastar format for chapter: ${chapter.article?.title || 'Untitled'}`);
-              // If it's not a URL, assume it needs to be converted to one
-              chapter.gliastar = `https://static-gstudio.gliacloud.com/${chapter.gliastar}`;
+            if (chapter.gliastar) {
+              if (chapter.gliastar.endsWith('.webm')) {
+                console.log(`Found .webm file for chapter: ${chapter.article?.title || 'Untitled'}`);
+                // .webm URLs are used directly
+              } else if (!chapter.gliastar.startsWith('https://')) {
+                console.log(`Converting gliastar format for chapter: ${chapter.article?.title || 'Untitled'}`);
+                // If it's not a URL, convert it
+                chapter.gliastar = `https://static-gstudio.gliacloud.com/${chapter.gliastar}`;
+              }
             }
             return chapter;
           });
@@ -57,12 +62,17 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         setTimeout(() => navigate('/'), 2000);
       }
     } else {
-      // Ensure all gliastar entries are properly formatted URLs
+      // Process gliastar URLs to ensure they're properly formatted
       const processedChapters = chapters.map((chapter) => {
-        if (chapter.gliastar && !chapter.gliastar.startsWith('https://')) {
-          console.log(`Converting gliastar format for chapter: ${chapter.article?.title || 'Untitled'}`);
-          // If it's not a URL, assume it needs to be converted to one
-          chapter.gliastar = `https://static-gstudio.gliacloud.com/${chapter.gliastar}`;
+        if (chapter.gliastar) {
+          if (chapter.gliastar.endsWith('.webm')) {
+            console.log(`Found .webm file for chapter: ${chapter.article?.title || 'Untitled'}`);
+            // .webm URLs are used directly
+          } else if (!chapter.gliastar.startsWith('https://')) {
+            console.log(`Converting gliastar format for chapter: ${chapter.article?.title || 'Untitled'}`);
+            // If it's not a URL, convert it
+            chapter.gliastar = `https://static-gstudio.gliacloud.com/${chapter.gliastar}`;
+          }
         }
         return chapter;
       });

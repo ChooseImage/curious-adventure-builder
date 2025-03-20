@@ -82,9 +82,14 @@ const LoadingState: React.FC<LoadingStateProps> = ({
           console.log("FOUND RESULT WITH SCENES:", contentItem.scenes);
           
           const processedScenes = contentItem.scenes.map((scene: any) => {
-            if (scene.gliastar && !scene.gliastar.startsWith('https://')) {
-              console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
-              scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+            if (scene.gliastar) {
+              if (scene.gliastar.endsWith('.webm')) {
+                console.log(`Found .webm file for scene: ${scene.article?.title || 'Untitled'}`);
+                // .webm URLs are used directly
+              } else if (!scene.gliastar.startsWith('https://')) {
+                console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
+                scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+              }
             }
             return scene;
           });
@@ -100,9 +105,14 @@ const LoadingState: React.FC<LoadingStateProps> = ({
       console.log("Direct result scenes:", latestItem.data.scenes);
       
       const processedScenes = latestItem.data.scenes.map((scene: any) => {
-        if (scene.gliastar && !scene.gliastar.startsWith('https://')) {
-          console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
-          scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+        if (scene.gliastar) {
+          if (scene.gliastar.endsWith('.webm')) {
+            console.log(`Found .webm file for scene: ${scene.article?.title || 'Untitled'}`);
+            // .webm URLs are used directly
+          } else if (!scene.gliastar.startsWith('https://')) {
+            console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
+            scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+          }
         }
         return scene;
       });
@@ -150,9 +160,14 @@ const LoadingState: React.FC<LoadingStateProps> = ({
         console.log("Found scenes in first content item:", firstItem.scenes);
         
         const processedScenes = firstItem.scenes.map((scene: any) => {
-          if (scene.gliastar && !scene.gliastar.startsWith('https://')) {
-            console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
-            scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+          if (scene.gliastar) {
+            if (scene.gliastar.endsWith('.webm')) {
+              console.log(`Found .webm file for scene: ${scene.article?.title || 'Untitled'}`);
+              // .webm URLs are used directly
+            } else if (!scene.gliastar.startsWith('https://')) {
+              console.log(`Converting gliastar format for scene: ${scene.article?.title || 'Untitled'}`);
+              scene.gliastar = `https://static-gstudio.gliacloud.com/${scene.gliastar}`;
+            }
           }
           return scene;
         });
