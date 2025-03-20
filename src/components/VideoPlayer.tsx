@@ -11,36 +11,43 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUrl }) => {
   const [isClosed, setIsClosed] = useState(false);
   const [formattedUrl, setFormattedUrl] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const lastVideoUrlRef = useRef<string>('');
 
   // Log when the component receives a new videoUrl prop
   useEffect(() => {
     console.log("VideoPlayer component received videoUrl:", videoUrl);
     
-    // Reset closed state when new URL is provided
-    if (videoUrl && isClosed) {
-      console.log("New video URL provided, resetting closed state");
-      setIsClosed(false);
-    }
-    
-    // Process the URL
-    if (videoUrl) {
-      // Remove any query parameters (like timestamps) that we may have added
-      const baseUrl = videoUrl.split('?')[0];
+    // Check if this is actually a new URL, not just a rerender
+    if (videoUrl !== lastVideoUrlRef.current) {
+      console.log("New video URL detected, updating player");
+      lastVideoUrlRef.current = videoUrl;
       
-      // Ensure URL is properly formatted
-      if (baseUrl.endsWith('.webm')) {
-        console.log("Using .webm video directly:", baseUrl);
-        setFormattedUrl(baseUrl);
-      } else if (!baseUrl.startsWith('https://')) {
-        console.log("Converting videoUrl format:", baseUrl);
-        // If it's not a URL, assume it needs to be converted to one
-        setFormattedUrl(`https://static-gstudio.gliacloud.com/${baseUrl}`);
-      } else {
-        console.log("Using provided URL without changes:", baseUrl);
-        setFormattedUrl(baseUrl);
+      // Reset closed state when new URL is provided
+      if (videoUrl && isClosed) {
+        console.log("New video URL provided, resetting closed state");
+        setIsClosed(false);
       }
-    } else {
-      setFormattedUrl('');
+      
+      // Process the URL
+      if (videoUrl) {
+        // Remove any query parameters (like timestamps) that we may have added
+        const baseUrl = videoUrl.split('?')[0];
+        
+        // Ensure URL is properly formatted
+        if (baseUrl.endsWith('.webm')) {
+          console.log("Using .webm video directly:", baseUrl);
+          setFormattedUrl(baseUrl);
+        } else if (!baseUrl.startsWith('https://')) {
+          console.log("Converting videoUrl format:", baseUrl);
+          // If it's not a URL, assume it needs to be converted to one
+          setFormattedUrl(`https://static-gstudio.gliacloud.com/${baseUrl}`);
+        } else {
+          console.log("Using provided URL without changes:", baseUrl);
+          setFormattedUrl(baseUrl);
+        }
+      } else {
+        setFormattedUrl('');
+      }
     }
   }, [videoUrl, isClosed]);
 

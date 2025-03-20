@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -26,6 +25,17 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
   
   const chapterIndex = parseInt(chapterId || '1') - 1;
+  
+  useEffect(() => {
+    console.log("StoryPage received new chapters prop:", chapters);
+    
+    if (chapters.length > 0) {
+      console.log("Updating localChapters with new chapters from props");
+      setLocalChapters(chapters);
+      // Store the latest chapters in localStorage
+      localStorage.setItem('storyChapters', JSON.stringify(chapters));
+    }
+  }, [chapters]);
   
   useEffect(() => {
     if (chapters.length === 0) {
@@ -62,32 +72,13 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         toast.error("Error loading story. Returning to home page.");
         setTimeout(() => navigate('/'), 2000);
       }
-    } else {
-      // Process gliastar URLs to ensure they're properly formatted
-      const processedChapters = chapters.map((chapter) => {
-        if (chapter.gliastar) {
-          if (chapter.gliastar.endsWith('.webm')) {
-            console.log(`Found .webm file for chapter: ${chapter.article?.title || 'Untitled'}`);
-            // .webm URLs are used directly
-          } else if (!chapter.gliastar.startsWith('https://')) {
-            console.log(`Converting gliastar format for chapter: ${chapter.article?.title || 'Untitled'}`);
-            // If it's not a URL, convert it
-            chapter.gliastar = `https://static-gstudio.gliacloud.com/${chapter.gliastar}`;
-          }
-        }
-        return chapter;
-      });
-      
-      console.log("Storing chapters in localStorage with updated gliastar URLs:", processedChapters);
-      localStorage.setItem('storyChapters', JSON.stringify(processedChapters));
-      setLocalChapters(processedChapters);
     }
   }, [chapters, navigate]);
   
   const totalChapters = localChapters.length;
   
   useEffect(() => {
-    console.log("StoryPage component with chapters:", localChapters);
+    console.log("StoryPage component with localChapters:", localChapters);
     console.log("Current chapter index:", chapterIndex);
     
     if (localChapters.length === 0) {
@@ -98,7 +89,6 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     }
   }, [localChapters, chapterIndex, navigate]);
   
-  // Extract the current chapter
   const chapter = localChapters.length > 0 && chapterIndex >= 0 && chapterIndex < localChapters.length 
     ? localChapters[chapterIndex] 
     : {
@@ -107,7 +97,6 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
         article: { title: 'Chapter not found', content: 'Sorry, this chapter could not be loaded.' }
       };
   
-  // Update current video URL when chapter changes
   useEffect(() => {
     if (chapter && chapter.gliastar) {
       console.log("Updating current video URL from chapter:", chapter.gliastar);
@@ -152,7 +141,6 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
     });
   };
 
-  // Log the gliastar URL to verify format
   useEffect(() => {
     if (chapter && chapter.gliastar) {
       console.log("Current chapter gliastar URL:", chapter.gliastar);
