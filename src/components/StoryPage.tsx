@@ -27,10 +27,11 @@ const StoryPage: React.FC<StoryPageProps> = ({ chapters = [] }) => {
   const chapterIndex = parseInt(chapterId || '1') - 1;
   
   useEffect(() => {
-    console.log("StoryPage received new chapters prop:", chapters);
-    
+    window.scrollTo(0, 0);
+  }, [chapterId]);
+  
+  useEffect(() => {
     if (chapters.length > 0) {
-      console.log("Updating localChapters with new chapters from props");
       setLocalChapters(chapters);
       // Store the latest chapters in localStorage
       localStorage.setItem('storyChapters', JSON.stringify(chapters));

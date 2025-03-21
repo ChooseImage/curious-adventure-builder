@@ -11,6 +11,11 @@ const StoryPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [chapters, setChapters] = useState<any[]>([]);
   
+  // Reset scroll position when the page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+  
   useEffect(() => {
     // Get the chapters directly from location state
     const routeChapters = state?.chapters || [];
